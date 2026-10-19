@@ -1,0 +1,102 @@
+import { useState } from "react";
+import { BadgeCheck, ArrowRight, Check, Zap, Star, PiggyBank, Mail } from "lucide-react";
+import { SHIP_SERVICES, ICONS as USPS_ICONS } from "../data/content";
+
+const ICONS = [Zap, Star, PiggyBank, Mail];
+
+export default function ShipSection() {
+  const [billing, setBilling] = useState<"retail" | "commercial">("retail");
+
+  return (
+    <section id="ship" className="bg-slate-50 py-14 lg:py-20 scroll-mt-28">
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-8">
+          <div>
+            <p className="text-[12px] font-bold tracking-[0.2em] uppercase text-usps-red mb-2">Mail & Ship</p>
+            <h2 className="text-3xl lg:text-[40px] font-black text-usps-darker tracking-tight leading-tight">
+              Shipping that fits every<br className="hidden sm:block" /> budget & timeline
+            </h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="bg-white border border-slate-200 rounded-full p-1 flex text-[13px] font-bold">
+              {(["retail", "commercial"] as const).map((b) => (
+                <button
+                  key={b}
+                  onClick={() => setBilling(b)}
+                  className={`px-4 py-2 rounded-full capitalize transition-colors ${billing === b ? "bg-usps-blue text-white" : "text-slate-500 hover:text-slate-800"}`}
+                >
+                  {b}
+                </button>
+              ))}
+            </div>
+            <a href="#tools" className="hidden sm:inline-flex items-center gap-2 text-usps-blue font-bold text-[14px] hover:gap-3 transition-all">
+              Compare all services <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {SHIP_SERVICES.map((svc, i) => {
+            const Icon = ICONS[i];
+            const price = billing === "commercial"
+              ? `$${(parseFloat(svc.price.replace("$", "")) * 0.82).toFixed(2)}`
+              : svc.price;
+            return (
+              <div
+                key={svc.name}
+                className={`relative bg-white rounded-2xl p-6 flex flex-col border-2 transition-all hover:-translate-y-1 hover:shadow-xl ${
+                  svc.popular ? "border-usps-blue shadow-lg shadow-blue-100" : "border-transparent shadow-sm hover:border-slate-200"
+                }`}
+              >
+                {svc.popular && (
+                  <span className="absolute -top-3 left-6 bg-usps-blue text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full flex items-center gap-1">
+                    <BadgeCheck className="h-3.5 w-3.5" /> {svc.tag}
+                  </span>
+                )}
+                <span className={`h-11 w-11 rounded-xl flex items-center justify-center mb-4 ${svc.popular ? "bg-usps-blue text-white" : "bg-usps-light text-usps-blue"}`}>
+                  <Icon className="h-5 w-5" />
+                </span>
+                {!svc.popular && <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{svc.tag}</span>}
+                <h3 className="font-black text-[17px] text-slate-900 leading-tight mt-1">{svc.name}</h3>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span className="text-[11px] text-slate-400 font-semibold">from</span>
+                  <span className="text-3xl font-black text-usps-blue">{price}</span>
+                </div>
+                <p className="text-[13px] font-semibold text-slate-500">{svc.time}</p>
+                <ul className="mt-4 space-y-2 flex-1">
+                  {svc.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-[13.5px] text-slate-700">
+                      <Check className="h-4 w-4 text-green-600 shrink-0 mt-0.5" /> {f}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-5 grid grid-cols-2 gap-2">
+                  <a href="#tools" className={`text-center font-bold text-[13.5px] py-2.5 rounded-full transition-colors ${svc.popular ? "bg-usps-red hover:bg-usps-reddark text-white" : "bg-usps-blue hover:bg-usps-dark text-white"}`}>
+                    Ship Now
+                  </a>
+                  <a href="#tools" className="text-center font-bold text-[13.5px] py-2.5 rounded-full border-2 border-slate-200 hover:border-usps-blue text-slate-700 hover:text-usps-blue transition-colors">
+                    Details
+                  </a>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-6 bg-usps-darker rounded-2xl p-6 lg:p-8 flex flex-col lg:flex-row items-start lg:items-center gap-6 overflow-hidden relative">
+          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1.5px, transparent 0)", backgroundSize: "22px 22px" }} />
+          <img src={USPS_ICONS.freeboxes} alt="Free boxes icon" className="relative h-16 w-16 shrink-0 bg-white rounded-2xl p-2 object-contain" loading="lazy" />
+          <div className="relative flex-1">
+            <p className="text-usps-gold text-[12px] font-bold uppercase tracking-[0.2em]">Free Supplies</p>
+            <h3 className="text-white text-xl lg:text-2xl font-black mt-1">Priority Mail® boxes & envelopes ship free to your door</h3>
+            <p className="text-white/70 text-[14px] mt-1">Order packs of 10–25 online. Delivered in 7–10 days. No charge, ever.</p>
+          </div>
+          <div className="relative flex flex-wrap gap-3">
+            <a href="#store" className="bg-white text-usps-darker font-bold px-6 py-3 rounded-full text-[14px] hover:bg-usps-gold transition-colors">Order Free Boxes</a>
+            <a href="#store" className="border-2 border-white/40 text-white font-bold px-6 py-3 rounded-full text-[14px] hover:border-white transition-colors">Browse Supplies</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

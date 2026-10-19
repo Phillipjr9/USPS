@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@theme {
+  --color-usps-blue: #004b87;
+  --color-usps-dark: #002d5c;
+  --color-usps-darker: #001e3e;
+  --color-usps-light: #e8eef4;
+  --color-usps-sky: #d4e5f5;
+  --color-usps-red: #da291c;
+  --color-usps-reddark: #b02015;
+  --color-usps-gold: #ffb81c;
+  --color-usps-gray: #f3f4f6;
+  --color-usps-steel: #5a6d80;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
+  background: #fff;
+  color: #1a1a1a;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* USPS link underline style */
+.usps-link {
+  position: relative;
+}
+
+.hero-dot {
+  transition: all 0.3s ease;
+}
+
+/* mega menu animation */
+@keyframes megaIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.mega-animate {
+  animation: megaIn 0.22s ease-out;
+}
+
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-slide {
+  animation: fadeSlide 0.6s ease-out both;
+}
+
+@keyframes kenburns {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.08); }
+}
+.kenburns {
+  animation: kenburns 8s ease-out forwards;
+}
+
+@keyframes tickerMove {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* stamp perforation edge */
+.stamp-edge {
+  --r: 5px;
+  padding: 10px;
+  background: #fff;
+  -webkit-mask:
+    radial-gradient(var(--r), #0000 98%, #000) round space;
+  -webkit-mask-size: 14px 14px;
+  -webkit-mask-position: 7px 7px;
+  mask:
+    radial-gradient(var(--r), #0000 98%, #000) round space;
+  mask-size: 14px 14px;
+  mask-position: 7px 7px;
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.thin-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.thin-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+
+/* tracking progress dash */
+.track-line {
+  background-image: linear-gradient(to right, #004b87 55%, transparent 45%);
+  background-size: 12px 2px;
+  background-repeat: repeat-x;
+}
+
+input:focus, button:focus-visible, a:focus-visible {
+  outline: 2px solid #004b87;
+  outline-offset: 2px;
+}
+input:focus { outline-offset: 0; }
