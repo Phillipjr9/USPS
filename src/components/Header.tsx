@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Menu, X, ChevronDown, ChevronRight, User, Globe, ShieldCheck, Bell, MapPin, Truck, Calculator, Mail, Package, ArrowRight, CalendarClock, MapPinned, Printer, Stamp, Mailbox, Home, Box, BookOpen, Shield, AlertCircle } from "lucide-react";
+import { Check, Search, Menu, X, ChevronDown, ChevronRight, User, Globe, ShieldCheck, Bell, MapPin, Truck, Calculator, Mail, Package, ArrowRight, CalendarClock, MapPinned, Printer, Stamp, Mailbox, Home, Box, BookOpen, Shield, AlertCircle } from "lucide-react";
 import Logo from "./Logo";
 import { NAV_ITEMS } from "../data/content";
 import { toRoute } from "../data/links";
 import { useAuth } from "../context/AuthContext";
+import { LANGUAGES, useLanguage } from "../context/LanguageContext";
 
 const TOP_SEARCHES = ["PO BOXES", "PASSPORTS", "FREE BOXES", "TRACKING", "CHANGE OF ADDRESS", "HOLIDAY HOURS"];
 const ALERTS = [
@@ -15,6 +16,8 @@ const ALERTS = [
 
 export default function Header() {
   const { user, logout, isAdmin } = useAuth();
+  const { lang, setLang, t, languageLabel } = useLanguage();
+  const [langOpen, setLangOpen] = useState(false);
   const navigate = useNavigate();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -95,10 +98,48 @@ export default function Header() {
       {/* Utility bar */}
       <div className="bg-white border-b border-slate-200 hidden md:block">
         <div className="mx-auto max-w-7xl px-4 h-8 flex items-center justify-end gap-5 text-[12px] font-medium text-slate-600">
-          <Link to="/" className="hover:text-usps-blue flex items-center gap-1"><Globe className="h-3.5 w-3.5" /> English</Link>
-          <Link to="/locations" className="hover:text-usps-blue flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> Locations</Link>
-          <Link to="/help" className="hover:text-usps-blue">Support</Link>
-          <Link to="/informed" className="hover:text-usps-blue">Informed Delivery</Link>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setLangOpen((o) => !o)}
+              onBlur={() => window.setTimeout(() => setLangOpen(false), 140)}
+              aria-haspopup="listbox"
+              aria-expanded={langOpen}
+              aria-label={`Current language: ${languageLabel}`}
+              className="hover:text-usps-blue flex items-center gap-1"
+            >
+              <Globe className="h-3.5 w-3.5" /> {languageLabel}
+              <ChevronDown className={`h-3 w-3 transition-transform ${langOpen ? "rotate-180" : ""}`} />
+            </button>
+            {langOpen && (
+              <ul
+                role="listbox"
+                aria-label="Select a language"
+                className="absolute right-0 top-full mt-1.5 w-40 bg-white border border-slate-200 rounded-lg shadow-xl py-1 z-[60]"
+              >
+                {LANGUAGES.map((l) => (
+                  <li key={l.code}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={lang === l.code}
+                      onClick={() => {
+                        setLang(l.code);
+                        setLangOpen(false);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      <span>{l.native}</span>
+                      {lang === l.code && <Check className="h-3.5 w-3.5 text-usps-blue" />}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <Link to="/locations" className="hover:text-usps-blue flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {t("Locations")}</Link>
+          <Link to="/help" className="hover:text-usps-blue">{t("Support")}</Link>
+          <Link to="/informed" className="hover:text-usps-blue">{t("Informed Delivery")}</Link>
           {user ? (
             <>
               <Link to="/account" className="hover:text-usps-blue flex items-center gap-1">
@@ -111,13 +152,13 @@ export default function Header() {
               </Link>
               {isAdmin && (
                 <Link to="/admin/dashboard" className="hover:text-usps-blue flex items-center gap-1 font-semibold text-usps-blue">
-                  <ShieldCheck className="h-3.5 w-3.5" /> Admin Dashboard
+                  <ShieldCheck className="h-3.5 w-3.5" /> {t("Admin Dashboard")}
                 </Link>
               )}
-              <button onClick={logout} className="hover:text-usps-blue">Sign Out</button>
+              <button onClick={logout} className="hover:text-usps-blue">{t("Sign Out")}</button>
             </>
           ) : (
-            <Link to="/login" className="hover:text-usps-blue flex items-center gap-1"><User className="h-3.5 w-3.5" /> Register / Sign In</Link>
+            <Link to="/login" className="hover:text-usps-blue flex items-center gap-1"><User className="h-3.5 w-3.5" /> {t("Register / Sign In")}</Link>
           )}
         </div>
       </div>
@@ -195,7 +236,7 @@ export default function Header() {
                 autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search USPS.com"
+                placeholder={t("Search USPS.com")}
                 className="flex-1 px-4 py-2.5 text-sm outline-none"
               />
               <button type="submit" className="bg-usps-blue text-white px-4 py-2.5" aria-label="Search">
@@ -238,7 +279,7 @@ export default function Header() {
         )}
 
         {/* Primary nav */}
-        <nav className="bg-usps-blue relative" ref={navRef} onMouseLeave={leaveMenu} aria-label="Main navigation">
+        <nav id="main-nav" tabIndex={-1} className="bg-usps-blue relative outline-none" ref={navRef} onMouseLeave={leaveMenu} aria-label="Main navigation">
           <div className="mx-auto max-w-7xl px-2 sm:px-4 flex items-stretch overflow-x-auto no-scrollbar">
             {NAV_ITEMS.map((item) => (
               <button
@@ -254,7 +295,7 @@ export default function Header() {
                   openMenu === item.label ? "bg-usps-dark" : "hover:bg-white/10"
                 }`}
               >
-                {item.label}
+                {t(item.label)}
                 <ChevronDown className={`h-3.5 w-3.5 opacity-70 transition-transform ${openMenu === item.label ? "rotate-180" : ""}`} />
                 {openMenu === item.label && <span className="absolute bottom-0 inset-x-0 h-[3px] bg-usps-red" />}
               </button>
@@ -357,7 +398,7 @@ export default function Header() {
               <Package className="h-5 w-5" /> Click-N-Ship® <ChevronRight className="h-4 w-4 ml-auto" />
             </Link>
             {NAV_ITEMS.map((item) => (
-              <MobileNavGroup key={item.label} label={item.label} columns={item.columns} onNavigate={() => setMobileOpen(false)} />
+              <MobileNavGroup key={item.label} label={t(item.label)} columns={item.columns} onNavigate={() => setMobileOpen(false)} />
             ))}
           </div>
           <div className="p-4 border-t border-slate-200 space-y-2 text-sm font-semibold">
@@ -368,7 +409,7 @@ export default function Header() {
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center justify-center gap-2 rounded-lg bg-usps-darker py-2.5 text-white"
               >
-                <ShieldCheck className="h-4 w-4" /> Admin Dashboard
+                <ShieldCheck className="h-4 w-4" /> {t("Admin Dashboard")}
               </Link>
             )}
             <div className="grid grid-cols-2 gap-2">
@@ -377,7 +418,7 @@ export default function Header() {
               ) : (
                 <Link to="/login" onClick={() => setMobileOpen(false)} className="flex items-center justify-center gap-2 border border-slate-300 rounded-lg py-2.5 text-usps-blue"><User className="h-4 w-4" /> Sign In</Link>
               )}
-              <Link to="/locations" onClick={() => setMobileOpen(false)} className="flex items-center justify-center gap-2 bg-usps-blue text-white rounded-lg py-2.5"><MapPin className="h-4 w-4" /> Locations</Link>
+              <Link to="/locations" onClick={() => setMobileOpen(false)} className="flex items-center justify-center gap-2 bg-usps-blue text-white rounded-lg py-2.5"><MapPin className="h-4 w-4" /> {t("Locations")}</Link>
             </div>
           </div>
         </div>

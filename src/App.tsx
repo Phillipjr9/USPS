@@ -38,6 +38,7 @@ import FindMissingMailPage from "./pages/FindMissingMailPage";
 import SearchPage from "./pages/SearchPage";
 import LegalPage from "./pages/LegalPage";
 import SiteIndexPage from "./pages/SiteIndexPage";
+import AnniversaryPage from "./pages/AnniversaryPage";
 
 export default function App() {
   const [showTop, setShowTop] = useState(false);
@@ -63,17 +64,30 @@ export default function App() {
             NOTE: must not be href="#main-content". Under HashRouter any "#..."
             href is interpreted as a route and would land on the 404 page.
           */}
-          <button
-            type="button"
-            onClick={() => {
-              const main = document.getElementById("main-content");
-              main?.scrollIntoView({ behavior: "smooth", block: "start" });
-              main?.focus();
-            }}
-            className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:bg-usps-blue focus:text-white focus:font-bold focus:px-4 focus:py-2 focus:rounded-md"
-          >
-            Skip to main content
-          </button>
+          <div className="fixed top-2 left-2 z-[100] flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const main = document.getElementById("main-content");
+                main?.scrollIntoView({ behavior: "smooth", block: "start" });
+                main?.focus();
+              }}
+              className="sr-only focus:not-sr-only focus:bg-usps-blue focus:text-white focus:font-bold focus:px-4 focus:py-2 focus:rounded-md"
+            >
+              Skip to main content
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const nav = document.getElementById("main-nav");
+                nav?.scrollIntoView({ block: "start" });
+                nav?.focus();
+              }}
+              className="sr-only focus:not-sr-only focus:bg-usps-blue focus:text-white focus:font-bold focus:px-4 focus:py-2 focus:rounded-md"
+            >
+              Skip all utility navigation
+            </button>
+          </div>
           <Header />
 
           <main id="main-content" tabIndex={-1} className="outline-none">
@@ -110,6 +124,7 @@ export default function App() {
               <Route path="/privacy" element={<LegalPage kind="privacy" />} />
               <Route path="/terms" element={<LegalPage kind="terms" />} />
               <Route path="/site-index" element={<SiteIndexPage />} />
+              <Route path="/250" element={<AnniversaryPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>

@@ -4,16 +4,19 @@ import "./index.css";
 import App from "./App";
 import { CartProvider } from "./context/CartContext";
 import { AuthProvider } from "./context/AuthContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ErrorBoundary>
-      <AuthProvider>
-        <CartProvider>
-          <App />
-        </CartProvider>
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <CartProvider>
+            <App />
+          </CartProvider>
+        </AuthProvider>
+      </LanguageProvider>
     </ErrorBoundary>
   </StrictMode>
 );
