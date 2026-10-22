@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, Globe, ArrowUp } from "lucide-react";
+import { Check, ChevronDown, Globe, ArrowUp } from "lucide-react";
 import { SOCIALS_REAL } from "../data/content";
 import { toRoute } from "../data/links";
+import { LANGUAGES, useLanguage } from "../context/LanguageContext";
 
 const COLS: { heading: string; links: string[] }[] = [
   { heading: "Mail & Shipping", links: ["Click-N-Ship®", "Calculate Postage", "Look Up ZIP Code™", "Schedule a Pickup", "Find Locations", "Postage Prices", "Free Boxes"] },
@@ -13,7 +14,8 @@ const COLS: { heading: string; links: string[] }[] = [
 ];
 
 export default function Footer() {
-  const [lang, setLang] = useState("English");
+  const { lang, setLang, t, languageLabel } = useLanguage();
+  const [langOpen, setLangOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [sub, setSub] = useState(false);
 
@@ -49,7 +51,7 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-10">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
           {COLS.map((c) => (
-            <FooterCol key={c.heading} heading={c.heading} links={c.links} />
+            <FooterCol key={c.heading} heading={t(c.heading)} links={c.links} />
           ))}
         </div>
 
@@ -63,14 +65,46 @@ export default function Footer() {
             ))}
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setLang(lang === "English" ? "Español" : "English")}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/15 rounded-full px-4 py-2.5 text-[13px] font-semibold transition-colors"
-            >
-              <Globe className="h-4 w-4" /> {lang} <ChevronDown className="h-3.5 w-3.5" />
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setLangOpen((o) => !o)}
+                onBlur={() => window.setTimeout(() => setLangOpen(false), 140)}
+                aria-haspopup="listbox"
+                aria-expanded={langOpen}
+                className="flex items-center gap-2 bg-white/10 hover:bg-white/15 rounded-full px-4 py-2.5 text-[13px] font-semibold transition-colors"
+              >
+                <Globe className="h-4 w-4" /> {languageLabel}
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${langOpen ? "rotate-180" : ""}`} />
+              </button>
+              {langOpen && (
+                <ul
+                  role="listbox"
+                  aria-label="Select a language"
+                  className="absolute bottom-full right-0 mb-2 w-40 bg-white rounded-lg shadow-2xl py-1 z-[60]"
+                >
+                  {LANGUAGES.map((l) => (
+                    <li key={l.code}>
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={lang === l.code}
+                        onClick={() => {
+                          setLang(l.code);
+                          setLangOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        <span>{l.native}</span>
+                        {lang === l.code && <Check className="h-3.5 w-3.5 text-usps-blue" />}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
             <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex items-center gap-2 bg-white/10 hover:bg-white/15 rounded-full px-4 py-2.5 text-[13px] font-semibold transition-colors" aria-label="Back to top">
-              <ArrowUp className="h-4 w-4" /> Top
+              <ArrowUp className="h-4 w-4" /> {t("Back to top")}
             </button>
           </div>
         </div>

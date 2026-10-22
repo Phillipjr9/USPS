@@ -35,6 +35,7 @@ const TITLES: Record<string, string> = {
   "/privacy": "Privacy Policy | USPS",
   "/terms": "Terms of Use | USPS",
   "/site-index": "Site Index | USPS",
+  "/250": "250 Years of USPS | USPS",
 };
 
 /**

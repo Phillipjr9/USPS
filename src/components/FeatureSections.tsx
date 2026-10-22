@@ -80,7 +80,7 @@ export function Promo250() {
   return (
     <section className="bg-usps-darker py-10">
       <div className="mx-auto max-w-7xl px-4">
-        <Link to="/news" className="block rounded-2xl overflow-hidden hover:shadow-2xl transition-shadow">
+        <Link to="/250" className="block rounded-2xl overflow-hidden hover:shadow-2xl transition-shadow">
           <img
             src={IMAGES.promo250}
             alt="USPS 250th anniversary. Delivering since 1775. Celebrate 250 years of USPS! Explore now."

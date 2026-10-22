@@ -25,6 +25,9 @@ export default function QuickTools() {
                   {t.label}
                 </span>
                 <span className="block text-[12.5px] text-slate-500 mt-1 leading-snug">{t.desc}</span>
+                {t.price && (
+                  <span className="block text-[11.5px] font-bold text-usps-red mt-0.5">{t.price}</span>
+                )}
               </span>
             </Link>
           ))}

@@ -140,9 +140,9 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 /** The real USPS.com homepage service-link icon row */
-export const SERVICE_LINKS = [
+export const SERVICE_LINKS: { label: string; desc: string; price?: string; icon: string; alt: string }[] = [
   { label: "Click-N-Ship®", desc: "Pay for and print shipping labels.", icon: ICONS.clicknship, alt: "Printer Icon Link for Click-N-Ship" },
-  { label: "Buy Stamps", desc: "Stamps & supplies from the Postal Store.", icon: ICONS.stamps, alt: "Stamp Icon Link for Buy Stamps" },
+  { label: "Buy Stamps", desc: "Stamps & supplies from the Postal Store.", price: "Forever® $0.82 · Postcard $0.65", icon: ICONS.stamps, alt: "Stamp Icon Link for Buy Stamps" },
   { label: "Informed Delivery®", desc: "Preview mail & manage packages.", icon: ICONS.mailman, alt: "Mail Carrier Icon Link for Informed Delivery" },
   { label: "PO Boxes™", desc: "Rent a secure PO Box today.", icon: ICONS.pobox, alt: "PO Box Icon Link for PO Boxes" },
   { label: "Calculate a Price", desc: "Postage for letters & packages.", icon: ICONS.calculator, alt: "Calculator Icon Link for Calculate a Price" },
