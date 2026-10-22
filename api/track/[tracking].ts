@@ -23,7 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const shipments = await query<ShipmentRow>(
       `select tracking, service, from_address, to_address, weight_lbs, price,
-              status, scans, created_at, created_by
+              status, scans, created_at, created_by, eta
          from shipments
         where regexp_replace(upper(tracking), '[^A-Z0-9]', '', 'g') = $1
         limit 1`,

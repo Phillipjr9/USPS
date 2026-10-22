@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { api, errorMessage, type ApiError } from "../lib/api";
 import { generateTrackingNumber } from "./tracking";
+import { expectedDelivery } from "./eta";
 
 /**
  * Shared shipment store.
@@ -47,6 +48,8 @@ export interface ShipmentRecord {
   createdAt: number;
   /** Display date, e.g. "Oct 22, 2026". */
   date: string;
+  /** Epoch ms of the estimated delivery date, or null for older records. */
+  eta?: number | null;
   scans: ShipmentScan[];
   createdBy: string;
 }
@@ -224,6 +227,8 @@ export function findShipment(tracking: string): ShipmentRecord | undefined {
 
 export interface NewShipmentInput {
   service: string;
+  /** Pre-generated number from the form; omitted means generate one now. */
+  tracking?: string;
   from: ShipmentAddress;
   to: ShipmentAddress;
   weightLbs: number;
@@ -235,7 +240,7 @@ export interface NewShipmentInput {
 export async function createShipment(input: NewShipmentInput): Promise<ShipmentRecord> {
   const createdAt = Date.now();
   const record: ShipmentRecord = {
-    tracking: generateTrackingNumber(input.service),
+    tracking: input.tracking?.trim() || generateTrackingNumber(input.service),
     service: input.service,
     from: input.from,
     to: input.to,
@@ -244,6 +249,7 @@ export async function createShipment(input: NewShipmentInput): Promise<ShipmentR
     status: "Label Created",
     createdAt,
     date: formatDate(createdAt),
+    eta: expectedDelivery(input.service, createdAt),
     scans: initialScans(createdAt),
     createdBy: input.createdBy,
   };

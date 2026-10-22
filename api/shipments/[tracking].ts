@@ -27,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `update shipments
             set status = $2, scans = coalesce($3::jsonb, scans)
           where ${matchSql}
-        returning tracking, service, from_address, to_address, weight_lbs, price, status, scans, created_at, created_by`,
+        returning tracking, service, from_address, to_address, weight_lbs, price, status, scans, created_at, created_by, eta`,
         [key, status, scans === null ? null : JSON.stringify(scans)]
       );
       if (updated.length === 0) return void res.status(404).json({ error: "Shipment not found." });

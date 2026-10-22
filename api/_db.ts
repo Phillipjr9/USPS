@@ -93,6 +93,10 @@ create table if not exists holds (
   release_note text
 );
 create index if not exists holds_tracking_idx on holds(tracking);
+
+-- Delivery estimate. Added after the table shipped, so it has to be an
+-- idempotent alter rather than part of the create above.
+alter table shipments add column if not exists eta timestamptz;
 `;
 
 
