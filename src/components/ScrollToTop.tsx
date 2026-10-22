@@ -40,6 +40,14 @@ const TITLES: Record<string, string> = {
   "/send": "Send Mail & Packages | USPS",
   "/receive": "Receive Mail & Packages | USPS",
   "/shop": "Shop Stamps & Supplies | USPS",
+  "/hold-mail": "Hold Mail | USPS",
+  "/change-of-address": "Change of Address | USPS",
+  "/po-boxes": "PO Boxes | USPS",
+  "/delivery-instructions": "Delivery Instructions | USPS",
+  "/signature-services": "Signature Services | USPS",
+  "/tracking-updates": "Tracking Updates | USPS",
+  "/general-delivery": "General Delivery | USPS",
+  "/returns": "Returns & Exchanges | USPS",
 };
 
 /**

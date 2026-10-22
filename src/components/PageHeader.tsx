@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Package, MapPin, Calculator, Truck, Building2, Mail, HelpCircle, Globe, Newspaper, LayoutGrid, Send, Inbox, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Package, MapPin, Calculator, Truck, Building2, Mail, HelpCircle, Globe, Newspaper, LayoutGrid, Send, Inbox, ShoppingBag, Clock, Home, Mailbox, FileText, PenLine, Bell, RefreshCw } from "lucide-react";
 
 const ICONS: Record<string, typeof Package> = {
   track: Package,
@@ -18,6 +18,14 @@ const ICONS: Record<string, typeof Package> = {
   send: Send,
   receive: Inbox,
   shop: ShoppingBag,
+  holdmail: Clock,
+  address: Home,
+  poboxes: Mailbox,
+  instructions: FileText,
+  signature: PenLine,
+  updates: Bell,
+  general: Inbox,
+  returns: RefreshCw,
 };
 
 export default function PageHeader({

@@ -175,6 +175,88 @@ if (orphans.length) {
   pass(`all ${routes.size} routes are reachable from somewhere`);
 }
 
+/* ---------- no catch-all routing for distinct services ---------- */
+
+/**
+ * Every label in the mega menus, footer and service lists has to land on a
+ * page that is actually about that label. /help, /store and /locations are
+ * broad hubs; pointing "Hold Mail" or "Signature Services" at /help means the
+ * customer never reaches the service they asked for. Only the labels listed
+ * below — genuine FAQs, policies, about/investor pages, store products and
+ * location lookups — may resolve to a hub. Everything else must have its own
+ * route. Adding a label to these lists is a deliberate decision, not a
+ * shortcut for "make the link work".
+ */
+const HUB_ALLOWLIST = {
+  "/help": [
+    "Help",
+    "FAQs",
+    "Need Help?",
+    "Contact Us",
+    "Tracking FAQ",
+    "USPS Tracking® FAQs",
+    "Store FAQs",
+    "Report Fraud",
+    "Postal Inspectors",
+    "Post Office Jobs",
+    "Careers",
+    "Sustainability",
+    "About USPS",
+    "Investor Info",
+    "Mailing Standards",
+    "FOIA",
+    "No FEAR Act",
+    "Accessibility",
+    "Cookie Preferences",
+  ],
+  "/store": [
+    "Buy Stamps",
+    "Stamps",
+    "New Releases",
+    "New Stamp Releases",
+    "Forever® Stamps",
+    "Holiday Stamps",
+    "Love & Wedding",
+    "Stamp Gifts",
+    "Gifts & Collectibles",
+    "Stationery",
+    "Custom Mail & Cards",
+    "Shipping Supplies",
+    "Packaging & Boxes",
+    "Free Boxes",
+    "Free Boxes & Envelopes",
+    "Business Supplies",
+  ],
+  "/locations": [
+    "Find Locations",
+    "Find USPS Locations",
+    "USPS Smart Lockers",
+  ],
+};
+
+const catchAllProblems = [];
+for (const [hub, allowed] of Object.entries(HUB_ALLOWLIST)) {
+  for (const [label, route] of Object.entries(linkRoutes)) {
+    if (route === hub && !allowed.includes(label)) {
+      catchAllProblems.push(`"${label}" is routed to the ${hub} hub — give it its own page`);
+    }
+  }
+  for (const label of allowed) {
+    const actual = linkRoutes[label];
+    if (actual === undefined) {
+      catchAllProblems.push(`allowlist entry "${label}" no longer exists in links.ts`);
+    } else if (actual !== hub) {
+      catchAllProblems.push(`allowlist entry "${label}" now maps to ${actual}, not ${hub} — update the allowlist`);
+    }
+  }
+}
+if (catchAllProblems.length) {
+  catchAllProblems.forEach((d) => fail(d));
+} else {
+  const total = Object.values(HUB_ALLOWLIST).reduce((n, l) => n + l.length, 0);
+  pass(`no service label falls through to a catch-all hub (${total} documented exceptions)`);
+}
+
 /* ---------- raw codes must never reach the UI ---------- */
 
 /**
