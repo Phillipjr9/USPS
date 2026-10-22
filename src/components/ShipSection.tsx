@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { BadgeCheck, ArrowRight, Check, Zap, Star, PiggyBank, Mail } from "lucide-react";
 import { SHIP_SERVICES, ICONS as USPS_ICONS } from "../data/content";
 
@@ -29,9 +30,9 @@ export default function ShipSection() {
                 </button>
               ))}
             </div>
-            <a href="#tools" className="hidden sm:inline-flex items-center gap-2 text-usps-blue font-bold text-[14px] hover:gap-3 transition-all">
+            <Link to="/ship" className="hidden sm:inline-flex items-center gap-2 text-usps-blue font-bold text-[14px] hover:gap-3 transition-all">
               Compare all services <ArrowRight className="h-4 w-4" />
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -71,12 +72,12 @@ export default function ShipSection() {
                   ))}
                 </ul>
                 <div className="mt-5 grid grid-cols-2 gap-2">
-                  <a href="#tools" className={`text-center font-bold text-[13.5px] py-2.5 rounded-full transition-colors ${svc.popular ? "bg-usps-red hover:bg-usps-reddark text-white" : "bg-usps-blue hover:bg-usps-dark text-white"}`}>
+                  <Link to="/ship" className={`text-center font-bold text-[13.5px] py-2.5 rounded-full transition-colors ${svc.popular ? "bg-usps-red hover:bg-usps-reddark text-white" : "bg-usps-blue hover:bg-usps-dark text-white"}`}>
                     Ship Now
-                  </a>
-                  <a href="#tools" className="text-center font-bold text-[13.5px] py-2.5 rounded-full border-2 border-slate-200 hover:border-usps-blue text-slate-700 hover:text-usps-blue transition-colors">
+                  </Link>
+                  <Link to="/ship" className="text-center font-bold text-[13.5px] py-2.5 rounded-full border-2 border-slate-200 hover:border-usps-blue text-slate-700 hover:text-usps-blue transition-colors">
                     Details
-                  </a>
+                  </Link>
                 </div>
               </div>
             );
@@ -92,8 +93,8 @@ export default function ShipSection() {
             <p className="text-white/70 text-[14px] mt-1">Order packs of 10–25 online. Delivered in 7–10 days. No charge, ever.</p>
           </div>
           <div className="relative flex flex-wrap gap-3">
-            <a href="#store" className="bg-white text-usps-darker font-bold px-6 py-3 rounded-full text-[14px] hover:bg-usps-gold transition-colors">Order Free Boxes</a>
-            <a href="#store" className="border-2 border-white/40 text-white font-bold px-6 py-3 rounded-full text-[14px] hover:border-white transition-colors">Browse Supplies</a>
+            <Link to="/store" className="bg-white text-usps-darker font-bold px-6 py-3 rounded-full text-[14px] hover:bg-usps-gold transition-colors">Order Free Boxes</Link>
+            <Link to="/store" className="border-2 border-white/40 text-white font-bold px-6 py-3 rounded-full text-[14px] hover:border-white transition-colors">Browse Supplies</Link>
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { ArrowRight, Store, CheckCircle2, CalendarClock } from "lucide-react";
 import { IMAGES, FEATURED_PRODUCTS } from "../data/content";
 
@@ -24,12 +25,12 @@ export function HolidayBanner() {
             Priority Mail® by Dec 19, Priority Mail Express® by Dec 21.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
-            <a href="#ship" className="inline-flex items-center gap-2 bg-usps-red hover:bg-usps-reddark text-white font-bold px-6 py-3 rounded-full text-[14px] transition-colors">
+            <Link to="/ship" className="inline-flex items-center gap-2 bg-usps-red hover:bg-usps-reddark text-white font-bold px-6 py-3 rounded-full text-[14px] transition-colors">
               <CalendarClock className="h-4 w-4" /> Holiday Deadlines
-            </a>
-            <a href="#store" className="inline-flex items-center gap-2 border-2 border-white/60 hover:border-white hover:bg-white/10 text-white font-bold px-6 py-2.5 rounded-full text-[14px] transition-all">
+            </Link>
+            <Link to="/store" className="inline-flex items-center gap-2 border-2 border-white/60 hover:border-white hover:bg-white/10 text-white font-bold px-6 py-2.5 rounded-full text-[14px] transition-all">
               Shop Holiday Stamps
-            </a>
+            </Link>
           </div>
         </div>
         <div className="flex justify-center lg:justify-end">
@@ -55,7 +56,7 @@ export function FeaturedProducts() {
         </h2>
         <div className="grid md:grid-cols-3 gap-5">
           {FEATURED_PRODUCTS.map((f) => (
-            <a key={f.title} href="#tools" className="group bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all">
+            <Link key={f.title} to="/" className="group bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all">
               <div className="h-52 overflow-hidden bg-slate-100">
                 <img src={f.img} alt={f.alt} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
               </div>
@@ -66,7 +67,7 @@ export function FeaturedProducts() {
                   {f.cta} <ArrowRight className="h-4 w-4" />
                 </span>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       </div>
@@ -79,7 +80,7 @@ export function Promo250() {
   return (
     <section className="bg-usps-darker py-10">
       <div className="mx-auto max-w-7xl px-4">
-        <a href="#help" className="block rounded-2xl overflow-hidden hover:shadow-2xl transition-shadow">
+        <Link to="/news" className="block rounded-2xl overflow-hidden hover:shadow-2xl transition-shadow">
           <img
             src={IMAGES.promo250}
             alt="USPS 250th anniversary. Delivering since 1775. Celebrate 250 years of USPS! Explore now."
@@ -92,7 +93,7 @@ export function Promo250() {
             className="sm:hidden w-full h-auto"
             loading="lazy"
           />
-        </a>
+        </Link>
       </div>
     </section>
   );
@@ -172,7 +173,7 @@ export function BusinessBanner() {
         <h2 className="text-3xl lg:text-[36px] font-black text-usps-darker tracking-tight">Reach every door. Ship every order.</h2>
         <div className="mt-6 grid sm:grid-cols-3 gap-4">
           {cards.map((c) => (
-            <a key={c.title} href="#tools" className="group relative rounded-2xl overflow-hidden min-h-[240px] flex flex-col justify-end shadow-md hover:shadow-xl hover:-translate-y-1 transition-all">
+            <Link key={c.title} to="/" className="group relative rounded-2xl overflow-hidden min-h-[240px] flex flex-col justify-end shadow-md hover:shadow-xl hover:-translate-y-1 transition-all">
               <img src={c.img} alt={c.alt} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
               <div className="absolute inset-0 bg-gradient-to-t from-usps-darker/95 via-usps-darker/35 to-transparent" />
               <div className="relative p-5 text-white">
@@ -182,7 +183,7 @@ export function BusinessBanner() {
                   Explore <ArrowRight className="h-4 w-4" />
                 </span>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       </div>

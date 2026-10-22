@@ -97,3 +97,40 @@ input:focus, button:focus-visible, a:focus-visible {
   outline-offset: 2px;
 }
 input:focus { outline-offset: 0; }
+
+/* ---------- Print: shipping labels only ---------- */
+@media print {
+  /* Hide all chrome so only the label is printed */
+  header,
+  footer,
+  nav,
+  .no-print,
+  button,
+  [role="navigation"] {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  main {
+    display: block !important;
+  }
+
+  /* Keep label edges and shading intact */
+  .print-label {
+    box-shadow: none !important;
+    border: 1px solid #000 !important;
+    page-break-inside: avoid;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  @page {
+    margin: 12mm;
+  }
+}

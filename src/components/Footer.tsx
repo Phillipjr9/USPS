@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { ChevronDown, Globe, ArrowUp } from "lucide-react";
 import { SOCIALS_REAL } from "../data/content";
+import { toRoute } from "../data/links";
 
 const COLS: { heading: string; links: string[] }[] = [
   { heading: "Mail & Shipping", links: ["Click-N-Ship®", "Calculate Postage", "Look Up ZIP Code™", "Schedule a Pickup", "Find Locations", "Postage Prices", "Free Boxes"] },
@@ -55,7 +57,7 @@ export default function Footer() {
         <div className="mt-10 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center gap-5 justify-between">
           <div className="flex items-center gap-2">
             {SOCIALS_REAL.map((s) => (
-              <a key={s.name} href="#" aria-label={s.name} className="h-10 w-10 rounded-full bg-white hover:bg-slate-200 flex items-center justify-center transition-all hover:scale-110 overflow-hidden">
+              <a key={s.name} href={s.url} target="_blank" rel="noreferrer" aria-label={`USPS on ${s.name}`} title={`USPS on ${s.name}`} className="h-10 w-10 rounded-full bg-white hover:bg-slate-200 flex items-center justify-center transition-all hover:scale-110 overflow-hidden">
                 <img src={s.img} alt={s.name} className="h-6 w-6 object-contain" loading="lazy" />
               </a>
             ))}
@@ -78,9 +80,10 @@ export default function Footer() {
       <div className="bg-black/30">
         <div className="mx-auto max-w-7xl px-4 py-5">
           <div className="flex flex-wrap gap-x-5 gap-y-2 text-[12px] text-white/50 font-medium">
-            {["Privacy Policy", "Terms of Use", "FOIA", "No FEAR Act", "Accessibility", "Cookie Preferences", "Site Index", "Copyright © 2026 USPS"].map((l) => (
-              <a key={l} href="#" className="hover:text-white transition-colors">{l}</a>
+            {["Privacy Policy", "Terms of Use", "FOIA", "No FEAR Act", "Accessibility", "Cookie Preferences", "Site Index"].map((l) => (
+              <Link key={l} to={toRoute(l)} className="hover:text-white transition-colors">{l}</Link>
             ))}
+            <span className="text-white/50">Copyright © 2026 USPS</span>
           </div>
           <p className="mt-3 text-[11.5px] text-white/35 leading-relaxed max-w-4xl">
             This is a concept clone built for demonstration purposes. USPS®, Priority Mail®, Priority Mail Express®, Ground Advantage®, First-Class Mail®, Forever®, Informed Delivery®, Click-N-Ship®, Every Door Direct Mail®, and the Eagle logo are trademarks of the United States Postal Service®.
@@ -105,7 +108,9 @@ function FooterCol({ heading, links }: { heading: string; links: string[] }) {
       <ul className={`space-y-2 overflow-hidden transition-all ${open ? "max-h-64" : "max-h-0 lg:max-h-64"}`}>
         {links.map((l) => (
           <li key={l}>
-            <a href="#" className="text-[13.5px] text-white/70 hover:text-white hover:underline underline-offset-4 transition-colors">{l}</a>
+            <Link to={toRoute(l)} className="text-[13.5px] text-white/70 hover:text-white hover:underline underline-offset-4 transition-colors">
+              {l}
+            </Link>
           </li>
         ))}
       </ul>

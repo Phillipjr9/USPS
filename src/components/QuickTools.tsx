@@ -1,4 +1,6 @@
+import { Link } from "react-router-dom";
 import { SERVICE_LINKS } from "../data/content";
+import { toRoute } from "../data/links";
 
 export default function QuickTools() {
   return (
@@ -7,7 +9,11 @@ export default function QuickTools() {
         {/* Real USPS.com service-link icon grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-6">
           {SERVICE_LINKS.map((t) => (
-            <a key={t.label} href="#tools" className="group flex items-start gap-3 p-2 rounded-lg hover:bg-white hover:shadow-md transition-all">
+            <Link
+              key={t.label}
+              to={toRoute(t.label)}
+              className="group flex items-start gap-3 p-2 rounded-lg hover:bg-white hover:shadow-md transition-all"
+            >
               <img
                 src={t.icon}
                 alt={t.alt}
@@ -20,7 +26,7 @@ export default function QuickTools() {
                 </span>
                 <span className="block text-[12.5px] text-slate-500 mt-1 leading-snug">{t.desc}</span>
               </span>
-            </a>
+            </Link>
           ))}
         </div>
       </div>
