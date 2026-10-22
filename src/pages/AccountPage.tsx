@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { User, Package, Mail, Clock, MapPin, Settings, ArrowRight, LogOut, Truck, Check, ShieldAlert } from "lucide-react";
+import { User, Package, Mail, Clock, MapPin, Settings, ArrowRight, LogOut, Truck, Check, ShieldAlert, ShieldCheck } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../context/AuthContext";
 
@@ -20,7 +20,7 @@ const ACTIVITY = [
 ];
 
 export default function AccountPage() {
-  const { user, logout, updateProfile } = useAuth();
+  const { user, logout, updateProfile, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const deniedAdmin = (location.state as { denied?: string } | null)?.denied === "admin";
@@ -94,6 +94,22 @@ export default function AccountPage() {
           <div role="status" className="mb-6 flex items-center gap-2.5 bg-green-50 border border-green-200 rounded-lg p-3 max-w-xl">
             <Check className="h-4 w-4 text-green-600" />
             <p className="text-[13px] text-green-800">Profile updated successfully.</p>
+          </div>
+        )}
+
+        {isAdmin && (
+          <div className="mb-6 rounded-2xl border border-usps-blue/30 bg-usps-light p-5 flex flex-wrap items-center gap-4">
+            <ShieldCheck className="h-5 w-5 text-usps-blue shrink-0" />
+            <div className="flex-1 min-w-[200px]">
+              <p className="font-bold text-usps-darker text-[14px]">Admin tools</p>
+              <p className="text-[12.5px] text-slate-600">Create a shipping label and track every shipment you have created.</p>
+            </div>
+            <Link
+              to="/admin/dashboard"
+              className="inline-flex items-center gap-2 rounded-lg bg-usps-blue px-4 py-2.5 text-[13px] font-bold text-white hover:bg-usps-dark"
+            >
+              <Package className="h-4 w-4" /> Create a shipment
+            </Link>
           </div>
         )}
 

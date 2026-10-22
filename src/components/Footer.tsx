@@ -117,6 +117,7 @@ export default function Footer() {
             {["Privacy Policy", "Terms of Use", "FOIA", "No FEAR Act", "Accessibility", "Cookie Preferences", "Site Index"].map((l) => (
               <Link key={l} to={toRoute(l)} className="hover:text-white transition-colors">{l}</Link>
             ))}
+            <Link to="/admin/dashboard" className="text-usps-gold/80 hover:text-usps-gold font-semibold transition-colors">Shipping Admin</Link>
             <span className="text-white/50">Copyright © 2026 USPS</span>
           </div>
           <p className="mt-3 text-[11.5px] text-white/35 leading-relaxed max-w-4xl">
