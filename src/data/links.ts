@@ -9,6 +9,15 @@ export const LINK_ROUTES: Record<string, string> = {
   // Home
   Home: "/",
 
+  // Primary navigation sections
+  "Quick Tools": "/quick-tools",
+  Send: "/send",
+  Receive: "/receive",
+  Shop: "/shop",
+  Business: "/business",
+  International: "/international",
+  Help: "/help",
+
   // Quick tools / service links
   "Click-N-Ship®": "/ship",
   "Buy Stamps": "/store",

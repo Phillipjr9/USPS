@@ -282,15 +282,12 @@ export default function Header() {
         <nav id="main-nav" tabIndex={-1} className="bg-usps-blue relative outline-none" ref={navRef} onMouseLeave={leaveMenu} aria-label="Main navigation">
           <div className="mx-auto max-w-7xl px-2 sm:px-4 flex items-stretch overflow-x-auto no-scrollbar">
             {NAV_ITEMS.map((item) => (
-              <button
+              <Link
                 key={item.label}
+                to={toRoute(item.label)}
                 onMouseEnter={() => enterMenu(item.label)}
-                onClick={() => {
-                  if (isDesktop()) setOpenMenu(openMenu === item.label ? null : item.label);
-                  else setMobileOpen(true);
-                }}
-                aria-haspopup={isDesktop()}
-                aria-expanded={isDesktop() ? openMenu === item.label : undefined}
+                onFocus={() => enterMenu(item.label)}
+                onClick={() => setOpenMenu(null)}
                 className={`relative shrink-0 whitespace-nowrap px-4 sm:px-5 py-3 text-[14.5px] font-medium text-white/95 hover:text-white transition-colors flex items-center gap-1 ${
                   openMenu === item.label ? "bg-usps-dark" : "hover:bg-white/10"
                 }`}
@@ -298,7 +295,7 @@ export default function Header() {
                 {t(item.label)}
                 <ChevronDown className={`h-3.5 w-3.5 opacity-70 transition-transform ${openMenu === item.label ? "rotate-180" : ""}`} />
                 {openMenu === item.label && <span className="absolute bottom-0 inset-x-0 h-[3px] bg-usps-red" />}
-              </button>
+              </Link>
             ))}
             <Link to="/ship" className="ml-auto shrink-0 whitespace-nowrap flex items-center gap-2 px-5 py-3 text-[14px] font-bold text-white bg-usps-red hover:bg-usps-reddark transition-colors">
               <Package className="h-4 w-4" /> Click-N-Ship®
@@ -436,8 +433,15 @@ function MobileNavGroup({ label, columns, onNavigate }: { label: string; columns
         {label}
         <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
-      <div className={`overflow-hidden transition-all duration-300 ${open ? "max-h-[480px]" : "max-h-0"}`}>
+      <div className={`overflow-hidden transition-all duration-300 ${open ? "max-h-[560px]" : "max-h-0"}`}>
         <div className="px-5 pb-4 space-y-1">
+          <Link
+            to={toRoute(label)}
+            onClick={onNavigate}
+            className="flex items-center justify-between rounded-lg bg-usps-light/70 hover:bg-usps-light px-3 py-2.5 mb-2 text-[13.5px] font-bold text-usps-blue transition-colors"
+          >
+            Go to {label} overview <ArrowRight className="h-4 w-4" />
+          </Link>
           {columns.map((c) => (
             <div key={c.heading} className="mb-2">
               <p className="text-[11px] font-bold uppercase tracking-wider text-usps-blue/70 mt-2 mb-1">{c.heading}</p>
