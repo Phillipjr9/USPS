@@ -21,8 +21,12 @@ import {
   PlayCircle,
   AlertTriangle,
   Ban,
+  Users,
+  Trash2,
+  SlidersHorizontal,
 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
+import AdminCustomersTab from "../components/AdminCustomersTab";
 import { calcPostage } from "../data/content";
 import { formatTrackingNumber, inspectTracking } from "../data/tracking";
 import { useAuth } from "../context/AuthContext";
@@ -30,6 +34,7 @@ import { errorMessage } from "../lib/api";
 import {
   advanceShipment,
   createShipment,
+  deleteShipment,
   nextStatus,
   SHIPMENT_STATUSES,
   cityLine,
@@ -94,7 +99,7 @@ function priceFor(service: string, fromZip: string, toZip: string, lbs: number):
 /* ---------------- component ---------------- */
 
 export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState<"create" | "history" | "holds">("create");
+  const [activeTab, setActiveTab] = useState<"create" | "history" | "holds" | "customers">("create");
   const shipments = useShipments();
 
   // holds & stops
@@ -116,6 +121,7 @@ export default function AdminDashboardPage() {
   );
   const [holdNotes, setHoldNotes] = useState("");
   const [holdMsg, setHoldMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+  const [holdQuery, setHoldQuery] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
 
   const reasonsForCategory = useMemo(
@@ -123,6 +129,18 @@ export default function AdminDashboardPage() {
     [holdCategory]
   );
   const selectedReason = HOLD_REASONS.find((r) => r.code === holdReason);
+  const visibleHolds = useMemo(() => {
+    const q = holdQuery.trim().toLowerCase();
+    if (!q) return activeHolds;
+    return activeHolds.filter(
+      (h) =>
+        h.tracking.toLowerCase().includes(q) ||
+        h.reasonLabel.toLowerCase().includes(q) ||
+        h.category.toLowerCase().includes(q) ||
+        h.notes.toLowerCase().includes(q)
+    );
+  }, [activeHolds, holdQuery]);
+
   const adminEmail = user?.email ?? "";
 
   // form state
@@ -146,6 +164,8 @@ export default function AdminDashboardPage() {
   // history state
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
+  const [serviceFilter, setServiceFilter] = useState<string>("All");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "price">("newest");
 
   const lbs = parseFloat(weight) || 0;
   const estimate = useMemo(() => {
@@ -174,17 +194,24 @@ export default function AdminDashboardPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return shipments.filter((s) => {
+    const rows = shipments.filter((s) => {
       const matchesQ =
         !q ||
         s.tracking.toLowerCase().includes(q) ||
         cityLine(s.to).toLowerCase().includes(q) ||
         s.to.name.toLowerCase().includes(q) ||
-        s.service.toLowerCase().includes(q);
+        s.service.toLowerCase().includes(q) ||
+        s.createdBy.toLowerCase().includes(q);
       const matchesS = statusFilter === "All" || s.status === statusFilter;
-      return matchesQ && matchesS;
+      const matchesSvc = serviceFilter === "All" || s.service === serviceFilter;
+      return matchesQ && matchesS && matchesSvc;
     });
-  }, [shipments, query, statusFilter]);
+    const sorted = [...rows];
+    if (sortBy === "newest") sorted.sort((a, b) => b.createdAt - a.createdAt);
+    else if (sortBy === "oldest") sorted.sort((a, b) => a.createdAt - b.createdAt);
+    else sorted.sort((a, b) => b.price - a.price);
+    return sorted;
+  }, [shipments, query, statusFilter, serviceFilter, sortBy]);
 
   const validate = (): boolean => {
     const e: FormErrors = {};
@@ -253,6 +280,17 @@ export default function AdminDashboardPage() {
     }
   };
 
+  /** Removes a shipment outright — used for labels created by mistake. */
+  const removeShipment = async (tracking: string) => {
+    if (!window.confirm(`Delete ${tracking}? Tracking will stop finding this shipment.`)) return;
+    setActionError(null);
+    try {
+      await deleteShipment(tracking);
+    } catch (err) {
+      setActionError(errorMessage(err, "Unable to delete that shipment."));
+    }
+  };
+
   const resetForm = () => {
     setFromName(""); setFromCompany(""); setFromAddr(""); setFromCity(""); setFromState(""); setFromZip("");
     setToName(""); setToCompany(""); setToAddr(""); setToCity(""); setToState(""); setToZip("");
@@ -263,11 +301,13 @@ export default function AdminDashboardPage() {
   };
 
   const exportCsv = () => {
-    const header = "Tracking Number,Service,From,To,Ship Date,Status,Weight,Price\n";
-    const rows = shipments
+    // Exports the current view — search, status and service filters included.
+    const header =
+      "Tracking Number,Service,From,To,Ship Date,Status,Weight,Price,Created By\n";
+    const rows = filtered
       .map(
         (s) =>
-          `"${s.tracking}","${s.service}","${cityLine(s.from)}","${cityLine(s.to)}","${s.date}","${s.status}","${s.weightLbs.toFixed(1)} lbs","$${s.price.toFixed(2)}"`
+          `"${s.tracking}","${s.service}","${cityLine(s.from)}","${cityLine(s.to)}","${s.date}","${s.status}","${s.weightLbs.toFixed(1)} lbs","$${s.price.toFixed(2)}","${s.createdBy}"`
       )
       .join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
@@ -301,6 +341,7 @@ export default function AdminDashboardPage() {
   };
 
   const doRelease = async (id: string) => {
+    if (!window.confirm("Release this hold? The shipment resumes normal tracking and the customer's notice disappears.")) return;
     const ok = await releaseHold(id, adminEmail, "Released from admin dashboard");
     setHoldMsg(
       ok
@@ -442,6 +483,14 @@ export default function AdminDashboardPage() {
             <span className={`text-[11px] rounded-full px-2 py-0.5 ${activeHolds.length > 0 ? "bg-amber-400 text-amber-950" : "bg-white/20"}`}>
               {activeHolds.length}
             </span>
+          </button>
+          <button
+            onClick={() => setActiveTab("customers")}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all ${
+              activeTab === "customers" ? "bg-usps-blue text-white shadow-lg" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            <Users className="h-4 w-4" /> Customers
           </button>
         </div>
 
@@ -789,6 +838,42 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
+            {/* service + sort */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative">
+                <select
+                  value={serviceFilter}
+                  onChange={(e) => setServiceFilter(e.target.value)}
+                  aria-label="Filter by service"
+                  className="appearance-none border border-slate-300 rounded-md pl-9 pr-9 py-2.5 text-sm outline-none focus:border-usps-blue bg-white text-slate-700"
+                >
+                  <option value="All">All services</option>
+                  {SERVICES.map((svc) => (
+                    <option key={svc.name} value={svc.name}>{svc.name}</option>
+                  ))}
+                </select>
+                <Truck className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="h-4 w-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as "newest" | "oldest" | "price")}
+                  aria-label="Sort shipments"
+                  className="appearance-none border border-slate-300 rounded-md pl-9 pr-9 py-2.5 text-sm outline-none focus:border-usps-blue bg-white text-slate-700"
+                >
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="price">Highest price</option>
+                </select>
+                <SlidersHorizontal className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="h-4 w-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+              <p className="text-[12.5px] text-slate-500 sm:ml-auto">
+                Showing <b className="text-slate-800">{filtered.length}</b> of {shipments.length} shipments
+              </p>
+            </div>
+
             {/* table */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
               {filtered.length === 0 ? (
@@ -801,7 +886,8 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <>
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[980px]">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50">
@@ -871,6 +957,12 @@ export default function AdminDashboardPage() {
                                   <CheckCircle2 className="h-3.5 w-3.5" /> Complete
                                 </span>
                               )}
+                              <button
+                                onClick={() => removeShipment(s.tracking)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-semibold text-slate-400 hover:text-red-600 transition-colors"
+                              >
+                                <Trash2 className="h-3 w-3" /> Delete
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -878,6 +970,72 @@ export default function AdminDashboardPage() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* mobile card list — the table needs 980px, phones don't have it */}
+                <div className="md:hidden divide-y divide-slate-100">
+                  {filtered.map((s) => {
+                    const hold = activeHoldMap.get(normalizeTracking(s.tracking));
+                    return (
+                      <div key={s.tracking} className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <Link
+                            to={`/track?n=${encodeURIComponent(normalizeTracking(s.tracking))}`}
+                            className="font-mono text-[12.5px] font-bold text-usps-blue hover:underline break-all"
+                          >
+                            {s.tracking}
+                          </Link>
+                          <span className="text-sm font-bold text-usps-darker whitespace-nowrap">${s.price.toFixed(2)}</span>
+                        </div>
+                        <p className="mt-1 text-[12.5px] text-slate-600">
+                          {s.service} · {cityLine(s.from)} → {cityLine(s.to)}
+                        </p>
+                        <p className="mt-0.5 text-[11.5px] text-slate-400">
+                          {s.date} · {s.weightLbs.toFixed(1)} lbs
+                          {s.createdBy ? ` · ${s.createdBy}` : ""}
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          <span className={`px-2.5 py-1 rounded-full text-[10.5px] font-bold ${statusColor(s.status)}`}>{s.status}</span>
+                          {hold && (
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                hold.action === "stop" ? "bg-red-600 text-white" : "bg-amber-500 text-white"
+                              }`}
+                            >
+                              <ShieldAlert className="h-3 w-3" />
+                              {hold.action === "stop" ? "Stopped" : "On Hold"}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            onClick={() => manageShipment(s.tracking)}
+                            className={`inline-flex items-center gap-1.5 text-[11.5px] font-bold px-3 py-1.5 rounded-md border transition-colors ${
+                              hold ? "border-green-600 text-green-700" : "border-slate-300 text-slate-600"
+                            }`}
+                          >
+                            <ShieldAlert className="h-3.5 w-3.5" /> {hold ? "Held" : "Hold"}
+                          </button>
+                          {nextStatus(s.status) && (
+                            <button
+                              onClick={() => advanceStatus(s.tracking)}
+                              className="inline-flex items-center gap-1.5 text-[11.5px] font-bold px-3 py-1.5 rounded-md border border-slate-300 text-slate-600"
+                            >
+                              <PlayCircle className="h-3.5 w-3.5" /> {nextStatus(s.status)}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => removeShipment(s.tracking)}
+                            aria-label={`Delete shipment ${s.tracking}`}
+                            className="inline-flex items-center gap-1.5 text-[11.5px] font-bold px-3 py-1.5 rounded-md border border-slate-300 text-slate-500 hover:border-red-500 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Delete
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                </>
               )}
             </div>
 
@@ -1151,15 +1309,40 @@ export default function AdminDashboardPage() {
                   <ShieldAlert className="h-4 w-4 text-amber-600" /> Active Holds &amp; Stops
                 </h3>
                 <span className="text-[11px] font-bold bg-amber-100 text-amber-800 rounded-full px-2.5 py-0.5">
-                  {activeHolds.length} active
+                  {holdQuery.trim() ? `${visibleHolds.length} of ${activeHolds.length}` : `${activeHolds.length} active`}
                 </span>
               </div>
 
-              {activeHolds.length === 0 ? (
+              {activeHolds.length > 0 && (
+                <div className="px-6 py-3 border-b border-slate-100">
+                  <div className="relative">
+                    <Search className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={holdQuery}
+                      onChange={(e) => setHoldQuery(e.target.value)}
+                      placeholder="Search held shipments by tracking number, reason, or note..."
+                      className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-md text-[13px] outline-none focus:border-usps-blue transition-colors"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {visibleHolds.length === 0 ? (
                 <div className="p-10 text-center">
-                  <CheckCircle2 className="h-9 w-9 text-green-500 mx-auto mb-2" />
-                  <p className="font-bold text-slate-700">No active holds</p>
-                  <p className="text-[13px] text-slate-500 mt-1">All shipments are moving normally.</p>
+                  {activeHolds.length === 0 ? (
+                    <>
+                      <CheckCircle2 className="h-9 w-9 text-green-500 mx-auto mb-2" />
+                      <p className="font-bold text-slate-700">No active holds</p>
+                      <p className="text-[13px] text-slate-500 mt-1">All shipments are moving normally.</p>
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-9 w-9 text-slate-300 mx-auto mb-2" />
+                      <p className="font-bold text-slate-700">No holds match</p>
+                      <p className="text-[13px] text-slate-500 mt-1">Try a different tracking number or reason.</p>
+                    </>
+                  )}
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -1172,7 +1355,7 @@ export default function AdminDashboardPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {activeHolds.map((h) => (
+                      {visibleHolds.map((h) => (
                         <tr key={h.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                           <td className="py-3.5 px-4 font-mono text-[13px] font-bold text-slate-900">{h.tracking}</td>
                           <td className="py-3.5 px-4">
@@ -1239,6 +1422,9 @@ export default function AdminDashboardPage() {
             )}
           </div>
         )}
+
+        {/* ===== CUSTOMERS TAB ===== */}
+        {activeTab === "customers" && <AdminCustomersTab />}
       </div>
     </section>
   );
