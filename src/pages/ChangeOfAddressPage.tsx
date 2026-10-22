@@ -16,7 +16,7 @@ export default function ChangeOfAddressPage() {
         { label: "Duration", value: "12 months" },
         { label: "Processing", value: "Starts within 7–10 days" },
       ]}
-      cta={{ label: "Change my address", to: "/help" }}
+      cta={{ label: "Sign in to change my address", to: "/login" }}
       secondary={{ label: "Set up Informed Delivery®", to: "/informed" }}
       steps={[
         { title: "Tell us the old and new address", body: "Both addresses must be entered exactly as they appear on your mail — including apartment or unit numbers." },
