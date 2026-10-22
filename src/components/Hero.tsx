@@ -1,6 +1,11 @@
 import { useState } from "react";
-import { ChevronLeft, CheckCircle2, Circle, Package, Search, Loader2, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ChevronLeft, ChevronRight, ChevronDown, CheckCircle2, Circle, Package, Search, Loader2, ArrowRight, AlertTriangle, AlertCircle, ShieldAlert, RefreshCw } from "lucide-react";
 import { IMAGES, ICONS, mockTracking, calcPostage, zipLookup, POST_OFFICES } from "../data/content";
+import { formatHoldDate } from "../data/holds";
+import { inspectTracking, SAMPLE_NUMBER_TABLE } from "../data/tracking";
+import { lookupTracking } from "../lib/trackingLookup";
+import { errorMessage } from "../lib/api";
 
 type Tab = "track" | "zip" | "calc" | "pickup" | "locations";
 
@@ -44,12 +49,12 @@ export default function Hero() {
               Our simplified ground shipping solution helps your business deliver in 2-5 days*,
               with no hidden fees and USPS Tracking<sup>®</sup> included in the cost.
             </p>
-            <a
-              href="#ship"
+            <Link
+              to="/ship"
               className="mt-5 inline-flex items-center gap-2 bg-usps-red hover:bg-usps-reddark text-white font-bold px-7 py-3 rounded-full text-[15px] transition-all hover:gap-3 shadow-lg shadow-red-950/40"
             >
               Learn More <ArrowRight className="h-4 w-4" />
-            </a>
+            </Link>
             <p className="mt-4 text-[11px] text-white/60 leading-snug max-w-md">
               *For mailable items up to 70 lbs. Expected delivery in 2-5 days. Packages going to certain
               places (including Alaska, Hawaii, and offshore destinations), or containing hazardous
@@ -99,21 +104,207 @@ export default function Hero() {
 }
 
 /* ---------------- TRACK PANEL ---------------- */
-function TrackPanel() {
+/* ---------------- HOLD NOTICE (customer-facing) ---------------- */
+
+interface HoldInfo {
+  id: string;
+  action: "hold" | "stop";
+  reasonCode: string;
+  reasonLabel: string;
+  reasonDescription: string;
+  nextStep: string;
+  category: string;
+  severity: "warning" | "critical";
+  notes: string;
+  since: string;
+  createdBy: string;
+}
+
+export function HoldNotice({ hold }: { hold: HoldInfo }) {
+  const critical = hold.severity === "critical";
+  const isStop = hold.action === "stop";
+
+  return (
+    <div
+      role="alert"
+      className={`fade-slide rounded-lg border-l-4 mb-5 overflow-hidden ${
+        critical ? "bg-red-50 border-red-600" : "bg-amber-50 border-amber-500"
+      }`}
+    >
+      <div className="p-4 sm:p-5">
+        <div className="flex items-start gap-3">
+          <span className={`shrink-0 mt-0.5 ${critical ? "text-red-600" : "text-amber-600"}`}>
+            {critical ? <ShieldAlert className="h-6 w-6" /> : <AlertTriangle className="h-6 w-6" />}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className={`font-black text-[15px] ${critical ? "text-red-900" : "text-amber-900"}`}>
+                {isStop ? "Tracking stopped" : "Delivery on hold"}
+              </h3>
+              <span
+                className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                  critical ? "bg-red-600 text-white" : "bg-amber-500 text-white"
+                }`}
+              >
+                {hold.category}
+              </span>
+            </div>
+
+            <p className={`mt-1.5 font-bold text-[13.5px] ${critical ? "text-red-900" : "text-amber-900"}`}>
+              {hold.reasonLabel}
+            </p>
+            <p className={`mt-1 text-[13px] leading-relaxed ${critical ? "text-red-800" : "text-amber-800"}`}>
+              {hold.reasonDescription}
+            </p>
+
+            {hold.notes && (
+              <div className={`mt-3 rounded-md px-3 py-2 ${critical ? "bg-red-100/70" : "bg-amber-100/70"}`}>
+                <p className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${critical ? "text-red-700" : "text-amber-700"}`}>
+                  Carrier notes
+                </p>
+                <p className={`text-[12.5px] ${critical ? "text-red-900" : "text-amber-900"}`}>{hold.notes}</p>
+              </div>
+            )}
+
+            <div className={`mt-3 rounded-md px-3 py-2 ${critical ? "bg-red-100/70" : "bg-amber-100/70"}`}>
+              <p className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${critical ? "text-red-700" : "text-amber-700"}`}>
+                What you can do
+              </p>
+              <p className={`text-[12.5px] ${critical ? "text-red-900" : "text-amber-900"}`}>{hold.nextStep}</p>
+            </div>
+
+            <dl className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+              <div>
+                <dt className={`text-[10px] font-bold uppercase tracking-wider ${critical ? "text-red-600" : "text-amber-700"}`}>
+                  {isStop ? "Stopped since" : "Held since"}
+                </dt>
+                <dd className={`text-[12.5px] font-medium ${critical ? "text-red-900" : "text-amber-900"}`}>{formatHoldDate(hold.since)}</dd>
+              </div>
+              <div>
+                <dt className={`text-[10px] font-bold uppercase tracking-wider ${critical ? "text-red-600" : "text-amber-700"}`}>
+                  Reason category
+                </dt>
+                <dd className={`text-[12.5px] font-medium ${critical ? "text-red-900" : "text-amber-900"}`}>
+                  {hold.category}
+                </dd>
+              </div>
+            </dl>
+
+            <div className={`mt-4 flex flex-wrap items-center gap-3 pt-3 border-t ${critical ? "border-red-200" : "border-amber-200"}`}>
+              <Link
+                to="/help"
+                className={`inline-flex items-center gap-1.5 text-[12.5px] font-bold underline ${critical ? "text-red-800" : "text-amber-800"}`}
+              >
+                Contact Customer Service <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+              <Link
+                to="/find-missing-mail"
+                className={`inline-flex items-center gap-1.5 text-[12.5px] font-bold underline ${critical ? "text-red-800" : "text-amber-800"}`}
+              >
+                Start a Missing Mail search
+              </Link>
+              {!isStop && (
+                <Link
+                  to="/redelivery"
+                  className={`inline-flex items-center gap-1.5 text-[12.5px] font-bold underline ${critical ? "text-red-800" : "text-amber-800"}`}
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Schedule Redelivery
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- TRACKING FORMAT HELPERS ---------------- */
+
+/** Live feedback while typing: which USPS format was recognized. */
+function TrackingFormatHint({ value }: { value: string }) {
+  if (!value.trim()) return null;
+  const meta = inspectTracking(value);
+
+  if (!meta.valid) {
+    return (
+      <p className="mt-2 text-[12px] text-slate-500">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-300 mr-1.5 align-middle" />
+        Searching anyway — this doesn't look like a standard USPS tracking number.
+      </p>
+    );
+  }
+
+  return (
+    <p className="mt-2 text-[12px] text-slate-600 flex items-center gap-2">
+      <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
+      <span className="font-semibold text-green-700">
+        {meta.service ? `Recognized as ${meta.service}` : "Recognized USPS number"}
+      </span>
+    </p>
+  );
+}
+
+/** Collapsible reference of the three USPS tracking-number formats. */
+function TrackingFormatGuide() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="text-[12.5px] font-semibold text-usps-blue hover:underline flex items-center gap-1"
+      >
+        {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        What does a USPS tracking number look like?
+      </button>
+      {open && (
+        <div className="mt-2 overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr className="bg-slate-50">
+                <th className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Service</th>
+                <th className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Sample Number</th>
+              </tr>
+            </thead>
+            <tbody>
+              {SAMPLE_NUMBER_TABLE.map((row) => (
+                <tr key={row.service} className="border-t border-slate-100 align-top">
+                  <td className="px-3 py-1.5 text-[11.5px] text-slate-600">{row.service}</td>
+                  <td className="px-3 py-1.5 font-mono text-[11.5px] text-slate-800">
+                    {row.samples.join("  /  ")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function TrackPanel() {
   const [num, setNum] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ReturnType<typeof mockTracking> | null>(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
 
-  const submit = (e?: React.FormEvent, preset?: string) => {
+  const submit = async (e?: React.FormEvent, preset?: string) => {
     e?.preventDefault();
     const val = preset ?? num;
     if (!val.trim()) return;
     setLoading(true);
     setResult(null);
-    setTimeout(() => {
-      setResult(mockTracking(val.trim()));
+    setLookupError(null);
+    try {
+      setResult(await lookupTracking(val.trim()));
+    } catch (err) {
+      setLookupError(errorMessage(err, "Unable to look up that tracking number."));
+    } finally {
       setLoading(false);
-    }, 900);
+    }
   };
 
   if (result) {
@@ -129,31 +320,67 @@ function TrackPanel() {
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{result.service}</p>
               <p className="font-mono text-[13px] font-bold text-usps-darker break-all">{result.number}</p>
             </div>
-            <span className={`shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide ${result.status === "Delivered" ? "bg-green-600 text-white" : "bg-usps-blue text-white"}`}>
+            <span
+              className={`shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide ${
+                result.hold
+                  ? result.hold.severity === "critical"
+                    ? "bg-red-600 text-white"
+                    : "bg-amber-500 text-white"
+                  : result.status === "Delivered"
+                  ? "bg-green-600 text-white"
+                  : "bg-usps-blue text-white"
+              }`}
+            >
               {result.status}
             </span>
           </div>
-          <p className="mt-2 text-sm text-slate-600">Expected: <span className="font-bold text-slate-900">{result.eta}</span></p>
+          <p className="mt-2 text-sm text-slate-600">
+            Expected: 
+            <span className={`font-bold ${result.hold ? "text-amber-700" : "text-slate-900"}`}>{result.eta}</span>
+          </p>
           <div className="mt-3">
             <div className="h-2 bg-white rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-usps-blue to-green-500 rounded-full transition-all duration-1000" style={{ width: `${pct}%` }} />
+              {result.hold ? (
+                <div className="h-full bg-gradient-to-r from-amber-400 to-amber-600 rounded-full transition-all duration-1000" style={{ width: `${pct}%` }} />
+              ) : (
+                <div className="h-full bg-gradient-to-r from-usps-blue to-green-500 rounded-full transition-all duration-1000" style={{ width: `${pct}%` }} />
+              )}
             </div>
             <div className="flex justify-between mt-1.5">
               {["Created", "Accepted", "Transit", "Out for delivery", "Delivered"].map((l, i) => (
-                <span key={l} className={`text-[9px] font-bold uppercase ${i <= result.stageIndex ? "text-usps-blue" : "text-slate-400"}`}>{l}</span>
+                <span
+                  key={l}
+                  className={`text-[9px] font-bold uppercase ${
+                    result.hold ? (i <= result.stageIndex ? "text-amber-700" : "text-slate-400") : i <= result.stageIndex ? "text-usps-blue" : "text-slate-400"
+                  }`}
+                >
+                  {l}
+                </span>
               ))}
             </div>
           </div>
         </div>
+
+        {result.hold && <HoldNotice hold={result.hold} />}
         <div className="grid sm:grid-cols-2 gap-x-6">
           {result.events.map((ev, i) => (
             <div key={i} className="flex gap-3 pb-4 relative">
               {i < result.events.length - 1 && <span className="absolute left-[9px] top-5 bottom-0 w-[2px] bg-slate-200 sm:hidden" />}
-              <span className={`mt-0.5 shrink-0 ${i === 0 ? "text-green-600" : "text-slate-300"}`}>
-                {i === 0 ? <CheckCircle2 className="h-[18px] w-[18px] fill-green-100" /> : <Circle className="h-[18px] w-[18px] fill-white" />}
+              <span className={`mt-0.5 shrink-0 ${"isHold" in ev && ev.isHold ? (result.hold?.severity === "critical" ? "text-red-600" : "text-amber-500") : i === 0 ? "text-green-600" : "text-slate-300"}`}>
+                {"isHold" in ev && ev.isHold ? (
+                  result.hold?.severity === "critical" ? (
+                    <ShieldAlert className="h-[18px] w-[18px]" />
+                  ) : (
+                    <AlertTriangle className="h-[18px] w-[18px]" />
+                  )
+                ) : i === 0 ? (
+                  <CheckCircle2 className="h-[18px] w-[18px] fill-green-100" />
+                ) : (
+                  <Circle className="h-[18px] w-[18px] fill-white" />
+                )}
               </span>
               <div>
-                <p className="text-[13.5px] font-bold text-slate-900 leading-tight">{ev.title}</p>
+                <p className={`text-[13.5px] font-bold leading-tight ${"isHold" in ev && ev.isHold ? (result.hold?.severity === "critical" ? "text-red-700" : "text-amber-700") : "text-slate-900"}`}>{ev.title}</p>
                 <p className="text-[12.5px] text-slate-600">{ev.desc} — {ev.loc}</p>
                 <p className="text-[11.5px] text-slate-400">{ev.date}</p>
               </div>
@@ -172,31 +399,37 @@ function TrackPanel() {
           id="hero-track"
           value={num}
           onChange={(e) => setNum(e.target.value)}
-          placeholder="e.g. 9400 1118 9922 3040 0000 00"
+          placeholder="e.g. 9400 5483 1381 3152 3762 23"
           className="flex-1 border-2 border-slate-300 focus:border-usps-blue rounded-md px-4 py-3 text-[15px] font-mono outline-none transition-colors"
         />
         <button type="submit" disabled={loading || !num.trim()} className="bg-usps-blue hover:bg-usps-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-8 py-3 rounded-md text-[15px] flex items-center justify-center gap-2 transition-colors">
           {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Tracking…</> : <><Search className="h-4 w-4" /> Search</>}
         </button>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-[12.5px]">
-        <span className="text-slate-500">Try a sample:</span>
-        {["9400111899223040000018", "EJ958083578US"].map((s) => (
-          <button key={s} type="button" onClick={() => submit(undefined, s)} className="font-mono font-bold text-usps-blue hover:underline">
-            {s}
-          </button>
-        ))}
-      </div>
+      <TrackingFormatHint value={num} />
+
+      {lookupError && (
+        <p role="alert" className="mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-[12.5px] text-red-900">
+          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-600" />
+          <span>
+            <b className="font-bold">Tracking isn't available right now.</b> {lookupError}
+          </span>
+        </p>
+      )}
+
+
+      <TrackingFormatGuide />
+
       <p className="mt-3 text-[12.5px] text-slate-500">
         <Package className="h-3.5 w-3.5 inline mr-1 text-usps-blue" />
-        Get <a href="#informed" className="text-usps-blue font-semibold hover:underline">Informed Delivery®</a> alerts for all your packages.
+        Get <Link to="/informed" className="text-usps-blue font-semibold hover:underline">Informed Delivery®</Link> alerts for all your packages.
       </p>
     </form>
   );
 }
 
 /* ---------------- ZIP PANEL ---------------- */
-function ZipPanel() {
+export function ZipPanel() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zips, setZips] = useState<string[] | null>(null);
@@ -236,7 +469,7 @@ function ZipPanel() {
 }
 
 /* ---------------- CALC PANEL ---------------- */
-function CalcPanel() {
+export function CalcPanel() {
   const [from, setFrom] = useState("10001");
   const [to, setTo] = useState("90210");
   const [lbs, setLbs] = useState(2);
@@ -297,7 +530,7 @@ function CalcPanel() {
 }
 
 /* ---------------- PICKUP PANEL ---------------- */
-function PickupPanel() {
+export function PickupPanel() {
   const [done, setDone] = useState(false);
   const [addr, setAddr] = useState("");
   const [date, setDate] = useState(new Date(Date.now() + 86400000).toISOString().slice(0, 10));
@@ -339,7 +572,7 @@ function PickupPanel() {
 }
 
 /* ---------------- LOCATIONS PANEL ---------------- */
-function LocationsPanel() {
+export function LocationsPanel() {
   const [zip, setZip] = useState("10001");
   const [searched, setSearched] = useState(true);
   return (

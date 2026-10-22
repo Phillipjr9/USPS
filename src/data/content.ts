@@ -1,4 +1,13 @@
 import { USPS_ASSETS } from "./uspsAssets";
+import { findActiveHold, findReason, formatHoldDate } from "./holds";
+import {
+  findShipment,
+  cityLine,
+  formatScanDate,
+  SHIPMENT_STATUSES,
+  type ShipmentRecord,
+} from "./shipments";
+import { inspectTracking, normalizeTracking, formatTrackingNumber } from "./tracking";
 
 const A = USPS_ASSETS;
 
@@ -45,12 +54,12 @@ export const IMAGES = {
 };
 
 export const SOCIALS_REAL = [
-  { name: "Facebook", img: A.facebook },
-  { name: "Instagram", img: A.instagram },
-  { name: "Pinterest", img: A.pinterest },
-  { name: "Threads", img: A.threads },
-  { name: "X", img: A.x },
-  { name: "YouTube", img: A.youtube },
+  { name: "Facebook", img: A.facebook, url: "https://www.facebook.com/USPS" },
+  { name: "Instagram", img: A.instagram, url: "https://www.instagram.com/usps" },
+  { name: "Pinterest", img: A.pinterest, url: "https://www.pinterest.com/usps" },
+  { name: "Threads", img: A.threads, url: "https://www.threads.net/@usps" },
+  { name: "X", img: A.x, url: "https://twitter.com/usps" },
+  { name: "YouTube", img: A.youtube, url: "https://www.youtube.com/usps" },
 ];
 
 export interface MegaColumn {
@@ -75,7 +84,7 @@ export const NAV_ITEMS: NavItem[] = [
     featured: { title: "Schedule a Pickup", desc: "Free package pickup from your home or office.", cta: "Schedule Now", img: IMAGES.goShip },
   },
   {
-    label: "Mail & Ship",
+    label: "Send",
     columns: [
       { heading: "Send", links: ["Click-N-Ship®", "Send a Package", "Send Mail", "Postage Prices", "Label Broker®", "USPS Smart Lockers"] },
       { heading: "Services", links: ["Priority Mail Express®", "Priority Mail®", "USPS Ground Advantage®", "First-Class Mail®", "Media Mail®", "Military & Diplomatic Mail"] },
@@ -84,16 +93,16 @@ export const NAV_ITEMS: NavItem[] = [
     featured: { title: "USPS Ground Advantage®", desc: "2-5 day ground delivery from $5.85. Tracking included.", cta: "Learn More", img: IMAGES.goShip },
   },
   {
-    label: "Track & Manage",
+    label: "Receive",
     columns: [
-      { heading: "Tracking", links: ["Track a Package", "Informed Delivery®", "Delivery Instructions", "Redirect a Package", "Signature Services"] },
+      { heading: "Track & Manage", links: ["Track a Package", "Informed Delivery®", "Delivery Instructions", "Redirect a Package", "Signature Services"] },
       { heading: "Receiving", links: ["Hold Mail", "Forward Mail", "Change of Address", "PO Boxes", "General Delivery"] },
       { heading: "Notifications", links: ["Text & Email Updates", "Delivery Status Alerts", "Manage Notifications", "USPS Tracking® FAQs"] },
     ],
     featured: { title: "Informed Delivery®", desc: "Preview your mail and manage packages from anywhere.", cta: "Sign Up Free", img: IMAGES.goManage },
   },
   {
-    label: "Postal Store",
+    label: "Shop",
     columns: [
       { heading: "Shop", links: ["Stamps", "Shipping Supplies", "Packaging & Boxes", "Gifts & Collectibles", "Stationery", "Business Supplies"] },
       { heading: "Stamps", links: ["New Releases", "Forever® Stamps", "Love & Wedding", "Holiday Stamps", "Stamp Gifts"] },
@@ -280,42 +289,202 @@ export const POST_OFFICES = [
   { name: "Village Contract Unit", addr: "88 Bleecker St, New York, NY 10012", dist: "1.8 mi", hours: "Mon–Sat 10AM–8PM", services: ["Stamps", "Shipping", "Returns"] },
 ];
 
-export function mockTracking(num: string) {
-  const clean = num.replace(/\s/g, "") || "9400111899223040000000";
+/**
+ * Determine the mail class from the tracking number's service-type prefix.
+ * Falls back to a generic label when the prefix is outside the registry.
+ */
+function detectService(clean: string): string {
+  const meta = inspectTracking(clean);
+  if (meta.service) return meta.service;
+  if (meta.family === "international13") return "International Mail";
+  return "USPS Package Service";
+}
+
+/**
+ * Canonical scan timeline, mirroring the wording and locations USPS actually
+ * publishes on a tracking results page.
+ */
+const SCAN_TIMELINE = [
+  { title: "Shipping Label Created, USPS Awaiting Item", loc: "MCALLEN, TX 78504" },
+  { title: "USPS in possession of item", loc: "MCALLEN, TX 78504" },
+  { title: "Arrived at USPS Facility", loc: "MCALLEN TX DISTRIBUTION CENTER" },
+  { title: "In Transit to Next Facility", loc: "" },
+  { title: "Arrived at USPS Facility", loc: "SAN ANTONIO TX DISTRIBUTION CENTER" },
+  { title: "Departed USPS Facility", loc: "SAN ANTONIO TX DISTRIBUTION CENTER" },
+  { title: "In Transit to Next Facility", loc: "" },
+  { title: "Arrived at USPS Facility", loc: "KANSAS CITY KS DISTRIBUTION CENTER" },
+  { title: "Arrived at Post Office", loc: "LAWRENCE, KS 66049" },
+  { title: "Out for Delivery", loc: "LAWRENCE, KS 66049" },
+  { title: "Delivered, Front Door/Porch", loc: "LAWRENCE, KS 66049" },
+];
+
+/** How many timeline entries each stage has produced. */
+const STAGE_EVENT_COUNT = [1, 2, 5, 10, 11];
+
+/**
+ * Demo seeding: the reference shipment used to compare against the real USPS
+ * results page always resolves to "Delivered" with a full history, so the two
+ * designs can be compared like for like.
+ */
+const DEMO_STAGE_OVERRIDES: Record<string, number> = {
+  "9500126524876262785463": 4,
+};
+
+function mockTrackingBase(num: string) {
+  const clean = normalizeTracking(num) || "9400548313813152376223";
   let hash = 0;
   for (let i = 0; i < clean.length; i++) hash = (hash * 31 + clean.charCodeAt(i)) % 997;
+
   const stages = ["Label Created", "Accepted", "In Transit", "Out for Delivery", "Delivered"];
-  const idx = 1 + (hash % 4);
+  const idx = DEMO_STAGE_OVERRIDES[clean] ?? 1 + (hash % 4);
   const status = stages[idx];
-  const dateBase = new Date();
+  const count = STAGE_EVENT_COUNT[idx];
+
+  const now = new Date();
   const events = [];
-  const cities = ["LOS ANGELES CA", "PHOENIX AZ DISTRIBUTION", "DALLAS TX NETWORK", "MEMPHIS TN HUB", "NEW YORK NY"];
-  const descs = [
-    "Shipping label created, USPS awaiting item",
-    "Acceptance at origin facility",
-    "Arrived at regional distribution center",
-    "Departed USPS facility, in transit to destination",
-    "Out for delivery",
-    "Delivered, in/at mailbox",
-  ];
-  for (let i = 0; i <= idx + 1 && i < descs.length; i++) {
-    const d = new Date(dateBase);
-    d.setDate(d.getDate() - (idx + 1 - i));
+  for (let i = 0; i < count; i++) {
+    const scan = SCAN_TIMELINE[i];
+    // Most recent scan is "now"; each earlier scan steps further back.
+    const d = new Date(now.getTime() - (count - 1 - i) * 6 * 3600 * 1000);
     events.push({
-      title: i === idx + 1 && status === "Delivered" ? "Delivered" : i <= idx ? ["Label created", "Accepted", "In transit", "Out for delivery", "Delivered"][Math.min(i, 4)] : descs[i],
-      desc: descs[Math.min(i, descs.length - 1)],
-      loc: cities[Math.min(i, cities.length - 1)],
-      date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + ", " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+      title: scan.title,
+      desc: scan.loc ? `${scan.title} — ${scan.loc}` : scan.title,
+      loc: scan.loc || "—",
+      date:
+        d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) +
+        " " +
+        d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
     });
   }
+
   return {
-    number: clean.toUpperCase().slice(0, 34),
+    number: formatTrackingNumber(clean).slice(0, 34),
     status,
     stageIndex: idx,
-    eta: status === "Delivered" ? "Delivered" : new Date(Date.now() + (4 - idx) * 86400000).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
-    service: clean.startsWith("9") ? "USPS Ground Advantage®" : clean.startsWith("E") ? "Priority Mail Express®" : "Priority Mail®",
+    eta:
+      status === "Delivered"
+        ? "Delivered"
+        : new Date(Date.now() + (4 - idx) * 86400000).toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+          }),
+    service: detectService(clean),
     events: events.reverse(),
   };
+}
+
+
+
+/**
+ * Turns an admin-created shipment into the tracking result shape.
+ *
+ * This is what makes an admin-created label genuinely trackable: the scans,
+ * origin, destination, service, and weight all come from the label the admin
+ * filled in rather than from a hash of the tracking number.
+ */
+export function trackingFromShipment(s: ShipmentRecord) {
+  const origin = cityLine(s.from);
+  const destination = cityLine(s.to);
+  const stageIndex = Math.max(0, SHIPMENT_STATUSES.indexOf(s.status));
+
+  const events = [...s.scans].reverse().map((scan) => ({
+    title: scan.title,
+    desc: scan.title,
+    loc: scan.place === "origin" ? origin : scan.place === "destination" ? destination : "—",
+    date: formatScanDate(scan.at),
+  }));
+
+  let eta: string;
+  if (s.status === "Delivered") {
+    eta = "Delivered";
+  } else if (s.status === "Out for Delivery") {
+    eta = events[0]?.date.split(" ").slice(0, 4).join(" ") ?? "Today";
+  } else {
+    const expected = new Date(Math.max(s.createdAt + 3 * 86400000, Date.now() + 86400000));
+    eta = expected.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    });
+  }
+
+  return {
+    number: s.tracking,
+    status: s.status,
+    stageIndex,
+    eta,
+    service: s.service,
+    events,
+  };
+}
+
+/**
+ * Public tracking lookup.
+ *
+ * Wraps the deterministic base result and applies any active administratively
+ * placed hold or stop, so the customer sees the status, reason, and notes.
+ */
+/** Minimal hold shape needed to overlay a hold onto a tracking result. */
+export interface HoldOverlay {
+  id: string;
+  action: "hold" | "stop";
+  reasonCode: string;
+  reasonLabel?: string;
+  notes: string;
+  createdAt: string;
+  createdBy?: string;
+}
+
+/** Applies an administrative hold on top of a tracking result. */
+export function applyHold(
+  base: ReturnType<typeof mockTrackingBase> | ReturnType<typeof trackingFromShipment>,
+  hold: HoldOverlay
+) {
+  const reason = findReason(hold.reasonCode);
+  const reasonLabel = hold.reasonLabel ?? reason?.label ?? hold.reasonCode;
+  const isStop = hold.action === "stop";
+
+  const holdEvent = {
+    title: isStop ? "Tracking stopped by USPS" : "Delivery placed on hold",
+    desc: `${reasonLabel}${hold.notes ? ` — ${hold.notes}` : ""}`,
+    loc: "—",
+    date: formatHoldDate(hold.createdAt),
+    isHold: true,
+  };
+
+  return {
+    ...base,
+    status: isStop ? "Stopped" : "On Hold",
+    eta: "Delayed — see the hold notice below",
+    isHeld: true as const,
+    hold: {
+      id: hold.id,
+      action: hold.action,
+      reasonCode: hold.reasonCode,
+      reasonLabel,
+      reasonDescription: reason?.description ?? reasonLabel,
+      nextStep: reason?.nextStep ?? "Contact Customer Service at 1-800-275-8777 for assistance.",
+      category: reason?.category ?? "General",
+      severity: reason?.severity ?? ("warning" as const),
+      notes: hold.notes,
+      since: hold.createdAt,
+      createdBy: hold.createdBy ?? "",
+    },
+    // Hold notice becomes the most recent scan.
+    events: [holdEvent, ...base.events],
+  };
+}
+
+/**
+ * Local tracking result for a number that has no stored shipment.
+ * Used as a fallback when the database has nothing for that number.
+ */
+export function mockTracking(num: string) {
+  const shipment = findShipment(num);
+  const base = shipment ? trackingFromShipment(shipment) : mockTrackingBase(num);
+  const hold = findActiveHold(base.number);
+  return hold ? applyHold(base, hold) : { ...base, isHeld: false as const, hold: null };
 }
 
 export function calcPostage(fromZip: string, toZip: string, lbs: number, oz: number, shape: string) {

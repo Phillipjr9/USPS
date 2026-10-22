@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Search, Menu, X, ChevronDown, ChevronRight, User, ShoppingCart, Globe, Bell, MapPin, Truck, Calculator, Mail, Package, ArrowRight } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, Menu, X, ChevronDown, ChevronRight, User, Globe, ShieldCheck, Bell, MapPin, Truck, Calculator, Mail, Package, ArrowRight, CalendarClock, MapPinned, Printer, Stamp, Mailbox, Home, Box, BookOpen, Shield, AlertCircle } from "lucide-react";
 import Logo from "./Logo";
 import { NAV_ITEMS } from "../data/content";
+import { toRoute } from "../data/links";
+import { useAuth } from "../context/AuthContext";
 
 const TOP_SEARCHES = ["PO BOXES", "PASSPORTS", "FREE BOXES", "TRACKING", "CHANGE OF ADDRESS", "HOLIDAY HOURS"];
 const ALERTS = [
@@ -10,7 +13,9 @@ const ALERTS = [
   "Service alert: Normal operations nationwide — check local Post Office hours before visiting.",
 ];
 
-export default function Header({ cartCount, onCartOpen }: { cartCount: number; onCartOpen: () => void }) {
+export default function Header() {
+  const { user, logout, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -31,6 +36,14 @@ export default function Header({ cartCount, onCartOpen }: { cartCount: number; o
   }, []);
 
   /** Mega menus only on pointer-sized desktop layouts */
+  /** Header search navigates to the real search page. */
+  const submitSearch = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const q = query.trim();
+    setSearchOpen(false);
+    navigate(q ? `/search?q=${encodeURIComponent(q)}` : "/search");
+  };
+
   const isDesktop = () => typeof window !== "undefined" && window.innerWidth >= 1024;
 
   const enterMenu = (label: string) => {
@@ -70,7 +83,9 @@ export default function Header({ cartCount, onCartOpen }: { cartCount: number; o
                 key={i}
                 onClick={() => setAlertIdx(i)}
                 aria-label={`Alert ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all ${i === alertIdx ? "w-5 bg-usps-gold" : "w-1.5 bg-white/30 hover:bg-white/60"}`}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === alertIdx ? "w-5 bg-usps-gold" : "w-1.5 bg-white/30 hover:bg-white/60"
+                }`}
               />
             ))}
           </div>
@@ -80,10 +95,30 @@ export default function Header({ cartCount, onCartOpen }: { cartCount: number; o
       {/* Utility bar */}
       <div className="bg-white border-b border-slate-200 hidden md:block">
         <div className="mx-auto max-w-7xl px-4 h-8 flex items-center justify-end gap-5 text-[12px] font-medium text-slate-600">
-          <a href="#business" className="hover:text-usps-blue flex items-center gap-1"><Globe className="h-3.5 w-3.5" /> Español</a>
-          <a href="#business" className="hover:text-usps-blue">Business Customer Gateway</a>
-          <a href="#help" className="hover:text-usps-blue">Register / Sign In</a>
-          <a href="#locations" className="hover:text-usps-blue flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> Find Locations</a>
+          <Link to="/" className="hover:text-usps-blue flex items-center gap-1"><Globe className="h-3.5 w-3.5" /> English</Link>
+          <Link to="/locations" className="hover:text-usps-blue flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> Locations</Link>
+          <Link to="/help" className="hover:text-usps-blue">Support</Link>
+          <Link to="/informed" className="hover:text-usps-blue">Informed Delivery</Link>
+          {user ? (
+            <>
+              <Link to="/account" className="hover:text-usps-blue flex items-center gap-1">
+                <User className="h-3.5 w-3.5" /> Hi, {user.firstName}
+                {isAdmin && (
+                  <span className="ml-1 rounded-full bg-usps-blue px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                    Admin
+                  </span>
+                )}
+              </Link>
+              {isAdmin && (
+                <Link to="/admin/dashboard" className="hover:text-usps-blue flex items-center gap-1 font-semibold text-usps-blue">
+                  <ShieldCheck className="h-3.5 w-3.5" /> Admin Dashboard
+                </Link>
+              )}
+              <button onClick={logout} className="hover:text-usps-blue">Sign Out</button>
+            </>
+          ) : (
+            <Link to="/login" className="hover:text-usps-blue flex items-center gap-1"><User className="h-3.5 w-3.5" /> Register / Sign In</Link>
+          )}
         </div>
       </div>
 
@@ -101,7 +136,11 @@ export default function Header({ cartCount, onCartOpen }: { cartCount: number; o
           <Logo />
 
           <div className="flex-1 hidden md:flex justify-center px-6">
-            <div className={`flex w-full max-w-xl items-center rounded-full border-2 transition-colors overflow-hidden ${searchOpen ? "border-usps-blue" : "border-slate-200 hover:border-slate-300"}`}>
+            <form
+              onSubmit={submitSearch}
+              role="search"
+              className={`flex w-full max-w-xl items-center rounded-full border-2 transition-colors overflow-hidden ${searchOpen ? "border-usps-blue" : "border-slate-200 hover:border-slate-300"}`}
+            >
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -114,11 +153,15 @@ export default function Header({ cartCount, onCartOpen }: { cartCount: number; o
                   <X className="h-4 w-4" />
                 </button>
               )}
-              <button className="bg-usps-blue hover:bg-usps-dark text-white px-5 py-2.5 flex items-center gap-2 text-sm font-semibold transition-colors" aria-label="Search">
+              <button
+                type="submit"
+                className="bg-usps-blue hover:bg-usps-dark text-white px-5 py-2.5 flex items-center gap-2 text-sm font-semibold transition-colors"
+                aria-label="Search"
+              >
                 <Search className="h-4 w-4" />
                 <span className="hidden lg:inline">Search</span>
               </button>
-            </div>
+            </form>
           </div>
 
           <div className="ml-auto md:ml-0 flex items-center gap-1 sm:gap-2">
@@ -129,25 +172,25 @@ export default function Header({ cartCount, onCartOpen }: { cartCount: number; o
             >
               <Search className="h-5 w-5" />
             </button>
-            <a href="#help" className="hidden sm:flex items-center gap-1.5 text-[13px] font-semibold text-usps-blue hover:bg-usps-light px-3 py-2 rounded-full transition-colors">
-              <User className="h-4 w-4" /> Sign In
-            </a>
-            <button onClick={onCartOpen} className="relative flex items-center gap-1.5 text-[13px] font-semibold text-usps-blue hover:bg-usps-light px-3 py-2 rounded-full transition-colors" aria-label="Cart">
-              <ShoppingCart className="h-4 w-4" />
-              <span className="hidden sm:inline">Cart</span>
-              {cartCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-usps-red text-white text-[10px] font-bold h-5 min-w-5 px-1 rounded-full flex items-center justify-center">
-                  {cartCount}
+            {user ? (
+              <Link to="/account" className="hidden sm:flex items-center gap-2 text-[13px] font-semibold text-usps-blue hover:bg-usps-light px-2 py-1.5 rounded-full transition-colors">
+                <span className="h-7 w-7 rounded-full bg-usps-blue text-white flex items-center justify-center text-[11px] font-black">
+                  {user.firstName.charAt(0)}{user.lastName.charAt(0)}
                 </span>
-              )}
-            </button>
+                <span className="hidden lg:inline">{user.firstName}</span>
+              </Link>
+            ) : (
+              <Link to="/login" className="hidden sm:flex items-center gap-1.5 text-[13px] font-semibold text-usps-blue hover:bg-usps-light px-3 py-2 rounded-full transition-colors">
+                <User className="h-4 w-4" /> Sign In
+              </Link>
+            )}
           </div>
         </div>
 
         {/* Mobile search expand */}
         {searchOpen && (
           <div className="md:hidden px-4 pb-3">
-            <div className="flex items-center rounded-full border-2 border-usps-blue overflow-hidden">
+            <form onSubmit={submitSearch} role="search" className="flex items-center rounded-full border-2 border-usps-blue overflow-hidden">
               <input
                 autoFocus
                 value={query}
@@ -155,8 +198,10 @@ export default function Header({ cartCount, onCartOpen }: { cartCount: number; o
                 placeholder="Search USPS.com"
                 className="flex-1 px-4 py-2.5 text-sm outline-none"
               />
-              <button className="bg-usps-blue text-white px-4 py-2.5" aria-label="Search"><Search className="h-4 w-4" /></button>
-            </div>
+              <button type="submit" className="bg-usps-blue text-white px-4 py-2.5" aria-label="Search">
+                <Search className="h-4 w-4" />
+              </button>
+            </form>
           </div>
         )}
 
@@ -179,13 +224,13 @@ export default function Header({ cartCount, onCartOpen }: { cartCount: number; o
               </div>
               <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-[13px]">
                 {[
-                  { icon: Truck, label: "Track a package" },
-                  { icon: Mail, label: "Buy stamps" },
-                  { icon: Calculator, label: "Calculate postage" },
+                  { icon: Truck, label: "Track a package", to: "/track" },
+                  { icon: Mail, label: "Buy stamps", to: "/store" },
+                  { icon: Calculator, label: "Calculate postage", to: "/calculate" },
                 ].map((s) => (
-                  <a key={s.label} href="#tools" onClick={() => setSearchOpen(false)} className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-slate-700 font-medium">
+                  <Link key={s.label} to={s.to} onClick={() => setSearchOpen(false)} className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-slate-700 font-medium">
                     <s.icon className="h-4 w-4 text-usps-blue" /> {s.label}
-                  </a>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -214,15 +259,43 @@ export default function Header({ cartCount, onCartOpen }: { cartCount: number; o
                 {openMenu === item.label && <span className="absolute bottom-0 inset-x-0 h-[3px] bg-usps-red" />}
               </button>
             ))}
-            <a href="#tools" className="ml-auto shrink-0 whitespace-nowrap flex items-center gap-2 px-5 py-3 text-[14px] font-bold text-white bg-usps-red hover:bg-usps-reddark transition-colors">
+            <Link to="/ship" className="ml-auto shrink-0 whitespace-nowrap flex items-center gap-2 px-5 py-3 text-[14px] font-bold text-white bg-usps-red hover:bg-usps-reddark transition-colors">
               <Package className="h-4 w-4" /> Click-N-Ship®
-            </a>
+            </Link>
           </div>
 
           {/* Mega menu */}
           {activeItem && (
             <div className="absolute inset-x-0 top-full z-50 mega-animate" onMouseEnter={() => enterMenu(activeItem.label)}>
               <div className="bg-white border-b-4 border-usps-red shadow-2xl">
+                {activeItem.label === "Quick Tools" ? (
+                  <div className="mx-auto max-w-7xl px-4 lg:px-8 py-8">
+                    <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-4">
+                      {[
+                        { icon: Package, label: "Track a Package", to: "/track" },
+                        { icon: Truck, label: "Track & Manage", to: "/track" },
+                        { icon: MapPin, label: "Look Up a ZIP Code™", to: "/zip" },
+                        { icon: Calculator, label: "Calculate a Price", to: "/calculate" },
+                        { icon: CalendarClock, label: "Schedule a Pickup", to: "/pickup" },
+                        { icon: MapPinned, label: "Find USPS Locations", to: "/locations" },
+                        { icon: Printer, label: "Click-N-Ship®", to: "/ship" },
+                        { icon: Stamp, label: "Buy Stamps", to: "/store" },
+                        { icon: Mail, label: "Informed Delivery®", to: "/informed" },
+                        { icon: Mailbox, label: "Hold Mail", to: "/help" },
+                        { icon: Home, label: "Change My Address", to: "/help" },
+                        { icon: Box, label: "PO Boxes™", to: "/store" },
+                        { icon: BookOpen, label: "Passport Services", to: "/passport-services" },
+                        { icon: Shield, label: "Insurance & Extra Services", to: "/insurance-extra-services" },
+                        { icon: AlertCircle, label: "File a Claim", to: "/file-claim" },
+                      ].map((t) => (
+                        <Link key={t.label} to={t.to} className="group flex flex-col items-center text-center gap-2 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                          <span className="text-usps-blue group-hover:text-usps-red transition-colors"><t.icon className="h-7 w-7" strokeWidth={1.75} /></span>
+                          <span className="text-[12px] font-bold text-slate-700 group-hover:text-usps-blue leading-tight">{t.label}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
                 <div className="mx-auto max-w-7xl px-4 lg:px-8 py-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
                   {activeItem.columns.map((col) => (
                     <div key={col.heading}>
@@ -232,17 +305,17 @@ export default function Header({ cartCount, onCartOpen }: { cartCount: number; o
                       <ul className="space-y-2.5">
                         {col.links.map((l) => (
                           <li key={l}>
-                            <a href="#tools" className="text-[14px] text-slate-700 hover:text-usps-blue hover:underline underline-offset-4 flex items-center gap-1 group">
+                            <Link to={toRoute(l)} className="text-[14px] text-slate-700 hover:text-usps-blue hover:underline underline-offset-4 flex items-center gap-1 group">
                               {l}
                               <ArrowRight className="h-3 w-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-usps-red" />
-                            </a>
+                            </Link>
                           </li>
                         ))}
                       </ul>
                     </div>
                   ))}
                   {activeItem.featured && (
-                    <a href="#tools" className="group/feat relative rounded-xl overflow-hidden flex flex-col justify-end min-h-[260px] text-white shadow-lg">
+                    <Link to={toRoute(activeItem.featured.title)} className="group/feat relative rounded-xl overflow-hidden flex flex-col justify-end min-h-[260px] text-white shadow-lg">
                       {activeItem.featured.img ? (
                         <img
                           src={activeItem.featured.img}
@@ -261,9 +334,10 @@ export default function Header({ cartCount, onCartOpen }: { cartCount: number; o
                           {activeItem.featured.cta} <ChevronRight className="h-4 w-4" />
                         </span>
                       </div>
-                    </a>
+                    </Link>
                   )}
                 </div>
+                )}
               </div>
             </div>
           )}
@@ -279,16 +353,32 @@ export default function Header({ cartCount, onCartOpen }: { cartCount: number; o
             <button onClick={() => setMobileOpen(false)} className="p-2 hover:bg-white/10 rounded-full" aria-label="Close menu"><X className="h-5 w-5" /></button>
           </div>
           <div className="flex-1 overflow-y-auto thin-scroll">
-            <a href="#tools" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 m-4 bg-usps-red text-white font-bold px-4 py-3 rounded-lg">
+            <Link to="/ship" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 m-4 bg-usps-red text-white font-bold px-4 py-3 rounded-lg">
               <Package className="h-5 w-5" /> Click-N-Ship® <ChevronRight className="h-4 w-4 ml-auto" />
-            </a>
+            </Link>
             {NAV_ITEMS.map((item) => (
               <MobileNavGroup key={item.label} label={item.label} columns={item.columns} onNavigate={() => setMobileOpen(false)} />
             ))}
           </div>
-          <div className="p-4 border-t border-slate-200 grid grid-cols-2 gap-2 text-sm font-semibold">
-            <a href="#help" className="flex items-center justify-center gap-2 border border-slate-300 rounded-lg py-2.5 text-usps-blue"><User className="h-4 w-4" /> Sign In</a>
-            <a href="#locations" className="flex items-center justify-center gap-2 bg-usps-blue text-white rounded-lg py-2.5"><MapPin className="h-4 w-4" /> Locations</a>
+          <div className="p-4 border-t border-slate-200 space-y-2 text-sm font-semibold">
+            {/* Admin access — the utility bar holding this link is desktop-only. */}
+            {isAdmin && (
+              <Link
+                to="/admin/dashboard"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center justify-center gap-2 rounded-lg bg-usps-darker py-2.5 text-white"
+              >
+                <ShieldCheck className="h-4 w-4" /> Admin Dashboard
+              </Link>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              {user ? (
+                <Link to="/account" onClick={() => setMobileOpen(false)} className="flex items-center justify-center gap-2 border border-slate-300 rounded-lg py-2.5 text-usps-blue"><User className="h-4 w-4" /> {user.firstName}</Link>
+              ) : (
+                <Link to="/login" onClick={() => setMobileOpen(false)} className="flex items-center justify-center gap-2 border border-slate-300 rounded-lg py-2.5 text-usps-blue"><User className="h-4 w-4" /> Sign In</Link>
+              )}
+              <Link to="/locations" onClick={() => setMobileOpen(false)} className="flex items-center justify-center gap-2 bg-usps-blue text-white rounded-lg py-2.5"><MapPin className="h-4 w-4" /> Locations</Link>
+            </div>
           </div>
         </div>
       </div>
@@ -311,7 +401,9 @@ function MobileNavGroup({ label, columns, onNavigate }: { label: string; columns
             <div key={c.heading} className="mb-2">
               <p className="text-[11px] font-bold uppercase tracking-wider text-usps-blue/70 mt-2 mb-1">{c.heading}</p>
               {c.links.map((l) => (
-                <a key={l} href="#tools" onClick={onNavigate} className="block py-1.5 text-[14px] text-slate-600 hover:text-usps-blue">{l}</a>
+                <Link key={l} to={toRoute(l)} onClick={onNavigate} className="block py-1.5 text-[14px] text-slate-600 hover:text-usps-blue">
+                  {l}
+                </Link>
               ))}
             </div>
           ))}

@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
 import { STORE_CAROUSEL } from "../data/content";
 
@@ -71,10 +72,10 @@ export default function Store({ onAdd }: { onAdd: (name: string, price: string) 
             </div>
           ))}
 
-          <a href="#store" className="snap-start shrink-0 w-[220px] bg-usps-blue rounded-2xl p-6 flex flex-col justify-center items-start text-white hover:bg-usps-dark transition-colors">
+          <Link to="/store" className="snap-start shrink-0 w-[220px] bg-usps-blue rounded-2xl p-6 flex flex-col justify-center items-start text-white hover:bg-usps-dark transition-colors">
             <p className="font-black text-xl leading-tight">Shop all<br />Postal Store®</p>
             <span className="mt-4 bg-white text-usps-blue text-[13px] font-bold px-4 py-2 rounded-full">Visit the Store →</span>
-          </a>
+          </Link>
         </div>
       </div>
     </section>

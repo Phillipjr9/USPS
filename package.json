@@ -6,13 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:links": "node scripts/check-links.mjs"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
     "clsx": "2.1.1",
     "lucide-react": "^1.59.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
+    "react-router-dom": "^7.18.4",
     "tailwind-merge": "3.4.0"
   },
   "devDependencies": {
@@ -20,6 +23,7 @@
     "@types/node": "22.19.17",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
+    "@vercel/node": "^26.0.0",
     "@vitejs/plugin-react": "5.1.1",
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3",
