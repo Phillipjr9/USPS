@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Package, MapPin, Calculator, Truck, Building2, Mail, HelpCircle, Globe, Newspaper } from "lucide-react";
+import { ArrowLeft, Package, MapPin, Calculator, Truck, Building2, Mail, HelpCircle, Globe, Newspaper, LayoutGrid, Send, Inbox, ShoppingBag } from "lucide-react";
 
 const ICONS: Record<string, typeof Package> = {
   track: Package,
@@ -14,6 +14,10 @@ const ICONS: Record<string, typeof Package> = {
   news: Newspaper,
   business: Globe,
   international: Globe,
+  quicktools: LayoutGrid,
+  send: Send,
+  receive: Inbox,
+  shop: ShoppingBag,
 };
 
 export default function PageHeader({

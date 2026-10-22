@@ -36,6 +36,10 @@ const TITLES: Record<string, string> = {
   "/terms": "Terms of Use | USPS",
   "/site-index": "Site Index | USPS",
   "/250": "250 Years of USPS | USPS",
+  "/quick-tools": "Quick Tools | USPS",
+  "/send": "Send Mail & Packages | USPS",
+  "/receive": "Receive Mail & Packages | USPS",
+  "/shop": "Shop Stamps & Supplies | USPS",
 };
 
 /**

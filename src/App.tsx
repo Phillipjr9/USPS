@@ -39,6 +39,10 @@ import SearchPage from "./pages/SearchPage";
 import LegalPage from "./pages/LegalPage";
 import SiteIndexPage from "./pages/SiteIndexPage";
 import AnniversaryPage from "./pages/AnniversaryPage";
+import QuickToolsPage from "./pages/QuickToolsPage";
+import SendPage from "./pages/SendPage";
+import ReceivePage from "./pages/ReceivePage";
+import ShopPage from "./pages/ShopPage";
 
 export default function App() {
   const [showTop, setShowTop] = useState(false);
@@ -125,6 +129,10 @@ export default function App() {
               <Route path="/terms" element={<LegalPage kind="terms" />} />
               <Route path="/site-index" element={<SiteIndexPage />} />
               <Route path="/250" element={<AnniversaryPage />} />
+              <Route path="/quick-tools" element={<QuickToolsPage />} />
+              <Route path="/send" element={<SendPage />} />
+              <Route path="/receive" element={<ReceivePage />} />
+              <Route path="/shop" element={<ShopPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>
