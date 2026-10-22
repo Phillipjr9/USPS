@@ -1,5 +1,5 @@
 import { neon } from "@neondatabase/serverless";
-import { hashPassword } from "./_password";
+import { hashPassword } from "./_password.js";
 
 /**
  * Resolves the Postgres connection string.

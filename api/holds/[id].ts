@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { ensureSchema, query } from "../_db";
-import { fail, requireAdmin } from "../_auth";
-import { toClientHold } from "./index";
+import { ensureSchema, query } from "../_db.js";
+import { fail, requireAdmin } from "../_auth.js";
+import { toClientHold } from "./index.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {

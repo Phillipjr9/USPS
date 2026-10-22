@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { ensureSchema, query } from "../_db";
-import { fail, requireAdmin } from "../_auth";
-import { toClientShipment, type ShipmentRow } from "./index";
+import { ensureSchema, query } from "../_db.js";
+import { fail, requireAdmin } from "../_auth.js";
+import { toClientShipment, type ShipmentRow } from "./index.js";
 
 const normalize = (v: string) => v.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
 

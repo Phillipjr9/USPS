@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { ensureSchema, query } from "../_db";
-import { fail } from "../_auth";
-import { toClientShipment, type ShipmentRow } from "../shipments/index";
-import { toClientHold } from "../holds/index";
+import { ensureSchema, query } from "../_db.js";
+import { fail } from "../_auth.js";
+import { toClientShipment, type ShipmentRow } from "../shipments/index.js";
+import { toClientHold } from "../holds/index.js";
 
 /**
  * Public tracking lookup. Returns the stored shipment (if one was created in

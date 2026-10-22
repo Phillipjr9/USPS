@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { ensureSchema, query } from "../_db";
+import { ensureSchema, query } from "../_db.js";
 import {
   createSession,
   fail,
@@ -7,7 +7,7 @@ import {
   setSessionCookie,
   verifyPassword,
   type DbUser,
-} from "../_auth";
+} from "../_auth.js";
 
 type UserRow = DbUser & { password_hash: string };
 
