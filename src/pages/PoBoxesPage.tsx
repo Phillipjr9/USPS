@@ -26,7 +26,7 @@ export default function PoBoxesPage() {
       ]}
       notes={[
         { title: "Street addressing", body: "Most offices let you use the Post Office's street address with your box number, so couriers can deliver to you." },
-        { title: "Six-month minimum", body: "New boxes are rented for a minimum of three months, and payment renews for the term you select." },
+        { title: "Choose your term", body: "Rent for 3, 6 or 12 months. Payment covers the whole term up front and renews when it ends." },
         { title: "Business use", body: "PO Boxes are popular with small businesses — they keep your home address off invoices and hold packages securely." },
         { title: "Package pickup", body: "If a parcel doesn't fit your box, you'll get a notice and collect it at the retail counter." },
         { title: "Free box with Caller Service", body: "High-volume mailers can qualify for Caller Service, which pairs a PO Box with scheduled pickup." },
