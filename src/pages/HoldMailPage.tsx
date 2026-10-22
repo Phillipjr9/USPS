@@ -16,7 +16,7 @@ export default function HoldMailPage() {
         { label: "Start date", value: "Earliest next delivery day" },
         { label: "Per request", value: "One address" },
       ]}
-      cta={{ label: "Start a Hold Mail request", to: "/help" }}
+      cta={{ label: "Sign in to start a hold", to: "/login" }}
       secondary={{ label: "Sign up for Informed Delivery®", to: "/informed" }}
       steps={[
         { title: "Enter your address", body: "Use the address where you normally receive mail. Hold Mail covers everything delivered there, not just first-class letters." },
