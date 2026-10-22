@@ -43,6 +43,14 @@ import QuickToolsPage from "./pages/QuickToolsPage";
 import SendPage from "./pages/SendPage";
 import ReceivePage from "./pages/ReceivePage";
 import ShopPage from "./pages/ShopPage";
+import HoldMailPage from "./pages/HoldMailPage";
+import ChangeOfAddressPage from "./pages/ChangeOfAddressPage";
+import PoBoxesPage from "./pages/PoBoxesPage";
+import DeliveryInstructionsPage from "./pages/DeliveryInstructionsPage";
+import SignatureServicesPage from "./pages/SignatureServicesPage";
+import TrackingUpdatesPage from "./pages/TrackingUpdatesPage";
+import GeneralDeliveryPage from "./pages/GeneralDeliveryPage";
+import ReturnsPage from "./pages/ReturnsPage";
 
 export default function App() {
   const [showTop, setShowTop] = useState(false);
@@ -133,6 +141,14 @@ export default function App() {
               <Route path="/send" element={<SendPage />} />
               <Route path="/receive" element={<ReceivePage />} />
               <Route path="/shop" element={<ShopPage />} />
+              <Route path="/hold-mail" element={<HoldMailPage />} />
+              <Route path="/change-of-address" element={<ChangeOfAddressPage />} />
+              <Route path="/po-boxes" element={<PoBoxesPage />} />
+              <Route path="/delivery-instructions" element={<DeliveryInstructionsPage />} />
+              <Route path="/signature-services" element={<SignatureServicesPage />} />
+              <Route path="/tracking-updates" element={<TrackingUpdatesPage />} />
+              <Route path="/general-delivery" element={<GeneralDeliveryPage />} />
+              <Route path="/returns" element={<ReturnsPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>
