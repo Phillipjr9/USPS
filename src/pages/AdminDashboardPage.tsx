@@ -28,7 +28,11 @@ import {
 import PageHeader from "../components/PageHeader";
 import AdminCustomersTab from "../components/AdminCustomersTab";
 import { calcPostage } from "../data/content";
-import { formatTrackingNumber, inspectTracking } from "../data/tracking";
+import { formatTrackingNumber, generateTrackingNumber, inspectTracking } from "../data/tracking";
+import AddressAutocomplete from "../components/AddressAutocomplete";
+import { LOCATIONS } from "../data/locations";
+import { expectedDelivery, formatEta, transitWindow } from "../data/eta";
+import { zipToCityState } from "../lib/addressSuggest";
 import { useAuth } from "../context/AuthContext";
 import { errorMessage } from "../lib/api";
 import {
@@ -160,6 +164,17 @@ export default function AdminDashboardPage() {
   const [service, setService] = useState<string>(SERVICES[2].name);
   const [errors, setErrors] = useState<FormErrors>({});
   const [created, setCreated] = useState<Shipment | null>(null);
+  /**
+   * The number is issued up front: the label is decided before the shipment
+   * exists, and this exact value is what gets stored.
+   */
+  const [trackingPreview, setTrackingPreview] = useState(() => generateTrackingNumber(SERVICES[2].name));
+  const regenerateTracking = () => setTrackingPreview(generateTrackingNumber(service));
+  const chooseService = (name: string) => {
+    setService(name);
+    setTrackingPreview(generateTrackingNumber(name));
+  };
+  const etaPreview = useMemo(() => expectedDelivery(service), [service, trackingPreview]);
 
   // history state
   const [query, setQuery] = useState("");
@@ -213,6 +228,19 @@ export default function AdminDashboardPage() {
     return sorted;
   }, [shipments, query, statusFilter, serviceFilter, sortBy]);
 
+  /** ZIP → city/state so the row fills itself once five digits are in. */
+  const fillCityStateFromZip = async (
+    zip: string,
+    setCity: (v: string) => void,
+    setSt: (v: string) => void
+  ) => {
+    if (zip.length !== 5) return;
+    const hit = await zipToCityState(zip);
+    if (!hit) return;
+    setCity(hit.city);
+    setSt(hit.state);
+  };
+
   const validate = (): boolean => {
     const e: FormErrors = {};
     if (!fromName.trim()) e.fromName = "Sender name is required";
@@ -239,6 +267,7 @@ export default function AdminDashboardPage() {
     try {
       shipment = await createShipment({
         service,
+        tracking: trackingPreview,
         from: {
           name: fromName.trim(),
           company: fromCompany.trim(),
@@ -264,6 +293,7 @@ export default function AdminDashboardPage() {
       return;
     }
     setCreated(shipment);
+    setTrackingPreview(generateTrackingNumber(service));
     setActiveTab("create");
   };
 
@@ -303,11 +333,11 @@ export default function AdminDashboardPage() {
   const exportCsv = () => {
     // Exports the current view — search, status and service filters included.
     const header =
-      "Tracking Number,Service,From,To,Ship Date,Status,Weight,Price,Created By\n";
+      "Tracking Number,Service,From,To,Ship Date,Est. Delivery,Status,Weight,Price,Created By\n";
     const rows = filtered
       .map(
         (s) =>
-          `"${s.tracking}","${s.service}","${cityLine(s.from)}","${cityLine(s.to)}","${s.date}","${s.status}","${s.weightLbs.toFixed(1)} lbs","$${s.price.toFixed(2)}","${s.createdBy}"`
+          `"${s.tracking}","${s.service}","${cityLine(s.from)}","${cityLine(s.to)}","${s.date}","${formatEta(s.eta ?? expectedDelivery(s.service, s.createdAt))}","${s.status}","${s.weightLbs.toFixed(1)} lbs","$${s.price.toFixed(2)}","${s.createdBy}"`
       )
       .join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
@@ -546,7 +576,7 @@ export default function AdminDashboardPage() {
                           </p>
                         );
                       })()}
-                      <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+                      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
                         <div className="bg-slate-50 rounded-lg p-3">
                           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Weight</p>
                           <p className="font-bold text-slate-900">{created.weightLbs.toFixed(1)} lbs</p>
@@ -554,6 +584,10 @@ export default function AdminDashboardPage() {
                         <div className="bg-slate-50 rounded-lg p-3">
                           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ship Date</p>
                           <p className="font-bold text-slate-900">{created.date}</p>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-3">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-green-700">Est. Delivery</p>
+                          <p className="font-bold text-green-900">{formatEta(created.eta ?? expectedDelivery(created.service, created.createdAt))}</p>
                         </div>
                         <div className="bg-slate-50 rounded-lg p-3">
                           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Postage</p>
@@ -618,6 +652,38 @@ export default function AdminDashboardPage() {
                   {/* From */}
                   <div>
                     <p className="text-sm font-bold text-usps-darker mb-3 flex items-center gap-2"><MapPin className="h-4 w-4 text-usps-blue" /> Sender Address</p>
+
+                    {/* Origin location — fills the sender block from a real Post Office */}
+                    <div className="mb-4">
+                      <label htmlFor="from-location" className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        Ship from a Post Office™ (optional)
+                      </label>
+                      <div className="relative">
+                        <select
+                          id="from-location"
+                          value=""
+                          onChange={(e) => {
+                            const loc = LOCATIONS.find((l) => l.id === e.target.value);
+                            if (!loc) return;
+                            setFromAddr(loc.street);
+                            setFromCity(loc.city);
+                            setFromState(loc.state);
+                            setFromZip(loc.zip);
+                            if (!fromCompany.trim()) setFromCompany(loc.name);
+                          }}
+                          className="mt-1 w-full appearance-none border-2 border-slate-300 focus:border-usps-blue rounded-md px-4 py-3 text-sm outline-none transition-colors bg-white"
+                        >
+                          <option value="">Choose a location, or type a custom address below</option>
+                          {LOCATIONS.filter((l) => l.type === "Post Office™").map((l) => (
+                            <option key={l.id} value={l.id}>
+                              {l.name} — {l.street}, {l.city}, {l.state} {l.zip}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="h-4 w-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none mt-1" />
+                      </div>
+                    </div>
+
                     <div className="grid md:grid-cols-2 gap-4">
                       <div>
                         <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Full Name *</label>
@@ -630,8 +696,19 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
                     <div className="mt-4">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Street Address *</label>
-                      <input value={fromAddr} onChange={(e) => setFromAddr(e.target.value)} placeholder="123 Main Street, Apt 4B" className={`mt-1 ${inputCls(errors.fromAddr)}`} />
+                      <label htmlFor="from-address" className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Street Address *</label>
+                      <AddressAutocomplete
+                        id="from-address"
+                        value={fromAddr}
+                        onChange={setFromAddr}
+                        invalid={Boolean(errors.fromAddr)}
+                        onPick={(p) => {
+                          setFromAddr(p.street || p.label);
+                          if (p.city) setFromCity(p.city);
+                          if (p.state) setFromState(p.state);
+                          if (p.zip) setFromZip(p.zip);
+                        }}
+                      />
                       {errors.fromAddr && <p className="text-xs text-red-600 mt-1">{errors.fromAddr}</p>}
                     </div>
                     <div className="grid md:grid-cols-3 gap-4 mt-4">
@@ -647,7 +724,7 @@ export default function AdminDashboardPage() {
                       </div>
                       <div>
                         <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">ZIP Code *</label>
-                        <input value={fromZip} onChange={(e) => setFromZip(e.target.value.replace(/\D/g, "").slice(0, 5))} placeholder="10001" inputMode="numeric" className={`mt-1 ${inputCls(errors.fromZip)} font-mono`} />
+                        <input value={fromZip} onChange={(e) => setFromZip(e.target.value.replace(/\D/g, "").slice(0, 5))} onBlur={() => void fillCityStateFromZip(fromZip, setFromCity, setFromState)} placeholder="10001" inputMode="numeric" className={`mt-1 ${inputCls(errors.fromZip)} font-mono`} />
                         {errors.fromZip && <p className="text-xs text-red-600 mt-1">{errors.fromZip}</p>}
                       </div>
                     </div>
@@ -668,8 +745,20 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
                     <div className="mt-4">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Street Address *</label>
-                      <input value={toAddr} onChange={(e) => setToAddr(e.target.value)} placeholder="456 Broadway Ave" className={`mt-1 ${inputCls(errors.toAddr)}`} />
+                      <label htmlFor="to-address" className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Street Address *</label>
+                      <AddressAutocomplete
+                        id="to-address"
+                        value={toAddr}
+                        onChange={setToAddr}
+                        invalid={Boolean(errors.toAddr)}
+                        placeholder="456 Broadway Ave"
+                        onPick={(p) => {
+                          setToAddr(p.street || p.label);
+                          if (p.city) setToCity(p.city);
+                          if (p.state) setToState(p.state);
+                          if (p.zip) setToZip(p.zip);
+                        }}
+                      />
                       {errors.toAddr && <p className="text-xs text-red-600 mt-1">{errors.toAddr}</p>}
                     </div>
                     <div className="grid md:grid-cols-3 gap-4 mt-4">
@@ -685,7 +774,7 @@ export default function AdminDashboardPage() {
                       </div>
                       <div>
                         <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">ZIP Code *</label>
-                        <input value={toZip} onChange={(e) => setToZip(e.target.value.replace(/\D/g, "").slice(0, 5))} placeholder="90210" inputMode="numeric" className={`mt-1 ${inputCls(errors.toZip)} font-mono`} />
+                        <input value={toZip} onChange={(e) => setToZip(e.target.value.replace(/\D/g, "").slice(0, 5))} onBlur={() => void fillCityStateFromZip(toZip, setToCity, setToState)} placeholder="90210" inputMode="numeric" className={`mt-1 ${inputCls(errors.toZip)} font-mono`} />
                         {errors.toZip && <p className="text-xs text-red-600 mt-1">{errors.toZip}</p>}
                       </div>
                     </div>
@@ -703,7 +792,7 @@ export default function AdminDashboardPage() {
                       <div>
                         <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Service *</label>
                         <div className="relative">
-                          <select value={service} onChange={(e) => setService(e.target.value)} className="mt-1 w-full border-2 border-slate-300 focus:border-usps-blue rounded-md px-4 py-3 text-sm outline-none transition-colors bg-white appearance-none">
+                          <select value={service} onChange={(e) => chooseService(e.target.value)} className="mt-1 w-full border-2 border-slate-300 focus:border-usps-blue rounded-md px-4 py-3 text-sm outline-none transition-colors bg-white appearance-none">
                             {SERVICES.map((s) => (
                               <option key={s.name} value={s.name}>{s.name}</option>
                             ))}
@@ -726,6 +815,29 @@ export default function AdminDashboardPage() {
                       <p className="font-black text-xl text-usps-blue">{estimate ? `$${estimate.price.toFixed(2)}` : "—"}</p>
                     </div>
 
+                    {/* generated tracking number + promised delivery date */}
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Tracking number · generated for this label
+                        </p>
+                        <button
+                          type="button"
+                          onClick={regenerateTracking}
+                          className="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-usps-blue hover:text-usps-dark"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" /> Regenerate
+                        </button>
+                      </div>
+                      <p className="mt-1 font-mono text-[15px] font-bold tracking-wide text-slate-900 break-all">
+                        {trackingPreview}
+                      </p>
+                      <p className="mt-1.5 text-[12.5px] text-slate-600">
+                        <span className="font-bold text-slate-800">Expected delivery {formatEta(etaPreview)}</span>
+                        <span className="text-slate-400"> · {transitWindow(service).label} from today</span>
+                      </p>
+                    </div>
+
                     <button
                       onClick={createLabel}
                       className="w-full mt-4 bg-usps-blue hover:bg-usps-dark text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
@@ -746,7 +858,7 @@ export default function AdminDashboardPage() {
                 {SERVICES.map((s) => (
                   <button
                     key={s.name}
-                    onClick={() => setService(s.name)}
+                    onClick={() => chooseService(s.name)}
                     className={`w-full flex items-center justify-between p-3 rounded-lg transition-all ${
                       service === s.name ? "bg-usps-blue/10 border border-usps-blue text-usps-blue" : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-usps-blue"
                     }`}
@@ -891,7 +1003,7 @@ export default function AdminDashboardPage() {
                   <table className="w-full text-left border-collapse min-w-[980px]">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50">
-                        {["Tracking Number", "Service", "From", "To", "Ship Date", "Weight", "Status", "Price", "Action"].map((h) => (
+                        {["Tracking Number", "Service", "From", "To", "Ship Date", "Est. Delivery", "Weight", "Status", "Price", "Action"].map((h) => (
                           <th key={h} className="py-3.5 px-4 text-[11px] font-bold uppercase tracking-wider text-slate-400">{h}</th>
                         ))}
                       </tr>
@@ -912,6 +1024,9 @@ export default function AdminDashboardPage() {
                           <td className="py-4 px-4 text-sm text-slate-500">{cityLine(s.from)}</td>
                           <td className="py-4 px-4 text-sm text-slate-700">{cityLine(s.to)}</td>
                           <td className="py-4 px-4 text-sm text-slate-500 whitespace-nowrap">{s.date}</td>
+                          <td className="py-4 px-4 text-sm font-semibold text-green-800 whitespace-nowrap">
+                            {formatEta(s.eta ?? expectedDelivery(s.service, s.createdAt))}
+                          </td>
                           <td className="py-4 px-4 text-sm text-slate-500 whitespace-nowrap">{s.weightLbs.toFixed(1)} lbs</td>
                           <td className="py-4 px-4">
                             <div className="flex flex-col gap-1 items-start">
@@ -990,7 +1105,10 @@ export default function AdminDashboardPage() {
                           {s.service} · {cityLine(s.from)} → {cityLine(s.to)}
                         </p>
                         <p className="mt-0.5 text-[11.5px] text-slate-400">
-                          {s.date} · {s.weightLbs.toFixed(1)} lbs
+                          {s.date} · {s.weightLbs.toFixed(1)} lbs · est.{" "}
+                          <span className="font-semibold text-green-800">
+                            {formatEta(s.eta ?? expectedDelivery(s.service, s.createdAt))}
+                          </span>
                           {s.createdBy ? ` · ${s.createdBy}` : ""}
                         </p>
                         <div className="mt-2 flex flex-wrap items-center gap-1.5">

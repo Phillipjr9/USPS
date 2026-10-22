@@ -8,6 +8,7 @@ import {
   type ShipmentRecord,
 } from "./shipments";
 import { inspectTracking, normalizeTracking, formatTrackingNumber } from "./tracking";
+import { formatEtaLong } from "./eta";
 
 const A = USPS_ASSETS;
 
@@ -400,6 +401,9 @@ export function trackingFromShipment(s: ShipmentRecord) {
     eta = "Delivered";
   } else if (s.status === "Out for Delivery") {
     eta = events[0]?.date.split(" ").slice(0, 4).join(" ") ?? "Today";
+  } else if (s.eta) {
+    // The date quoted when the label was issued.
+    eta = formatEtaLong(s.eta);
   } else {
     const expected = new Date(Math.max(s.createdAt + 3 * 86400000, Date.now() + 86400000));
     eta = expected.toLocaleDateString("en-US", {

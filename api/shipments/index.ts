@@ -13,6 +13,7 @@ export type ShipmentRow = {
   scans: unknown;
   created_at: string;
   created_by: string;
+  eta: string | null;
 };
 
 /** Shapes a database row into the object the client already expects. */
@@ -28,11 +29,12 @@ export function toClientShipment(row: ShipmentRow) {
     scans: row.scans,
     createdAt: new Date(row.created_at).getTime(),
     createdBy: row.created_by,
+    eta: row.eta ? new Date(row.eta).getTime() : null,
   };
 }
 
 const SELECT = `select tracking, service, from_address, to_address, weight_lbs, price,
-                       status, scans, created_at, created_by
+                       status, scans, created_at, created_by, eta
                   from shipments`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -57,6 +59,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const price = Number(body.price);
       const status = String(body.status ?? "Label Created");
       const scans = body.scans ?? [];
+      // Epoch ms from the client; null lets the column default apply.
+      const etaRaw = body.eta;
+      const eta = typeof etaRaw === "number" && Number.isFinite(etaRaw) ? new Date(etaRaw).toISOString() : null;
 
       if (!tracking || !service || !from || !to) {
         return void res.status(400).json({ error: "Missing shipment details." });
@@ -66,10 +71,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const inserted = await query<ShipmentRow>(
-        `insert into shipments (tracking, service, from_address, to_address, weight_lbs, price, status, scans, created_by)
-         values ($1, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8::jsonb, $9)
+        `insert into shipments (tracking, service, from_address, to_address, weight_lbs, price, status, scans, created_by, eta)
+         values ($1, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8::jsonb, $9, $10::timestamptz)
          on conflict (tracking) do nothing
-         returning tracking, service, from_address, to_address, weight_lbs, price, status, scans, created_at, created_by`,
+         returning tracking, service, from_address, to_address, weight_lbs, price, status, scans, created_at, created_by, eta`,
         [
           tracking,
           service,
@@ -80,6 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           status,
           JSON.stringify(scans),
           admin.email,
+          eta,
         ]
       );
 

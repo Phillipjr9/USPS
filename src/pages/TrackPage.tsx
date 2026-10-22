@@ -446,6 +446,14 @@ function TrackingResult({
           <p className="mt-1 text-[13px] uppercase tracking-wide text-slate-600">{latest.loc}</p>
         )}
         <p className="mt-0.5 text-[13px] text-slate-500">{latest.date}</p>
+        {!held && result.eta && (
+          <p className="mt-2 inline-flex flex-wrap items-baseline gap-1.5 rounded bg-usps-light px-2.5 py-1 text-[12.5px] text-usps-darker">
+            <span className="font-bold uppercase tracking-wider text-[10.5px] text-slate-500">
+              {result.status === "Delivered" ? "Delivered" : "Expected Delivery"}
+            </span>
+            <span className="font-bold">{result.eta}</span>
+          </p>
+        )}
       </div>
 
       {/* Hold notice */}
