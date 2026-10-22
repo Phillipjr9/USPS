@@ -350,7 +350,9 @@ export function decorateHold(row: RawHold): TrackingHold {
   const reason = findReason(row.reasonCode);
   return {
     ...row,
-    reasonLabel: reason?.label ?? row.reasonCode,
+    // A hold stored against a reason that has since been renamed still has to
+    // read as customer copy — never fall back to the raw reason code.
+    reasonLabel: reason?.label ?? "Delivery exception",
     category: reason?.category ?? "General",
     severity: reason?.severity ?? "warning",
   };
