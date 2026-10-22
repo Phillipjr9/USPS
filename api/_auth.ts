@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { query } from "./_db";
+import { query } from "./_db.js";
 
 export const SESSION_COOKIE = "usps_session";
 const SESSION_DAYS = 30;
@@ -17,7 +17,7 @@ export type DbUser = {
 
 /* ---------------- passwords ---------------- */
 
-export { hashPassword, verifyPassword } from "./_password";
+export { hashPassword, verifyPassword } from "./_password.js";
 
 /* ---------------- cookies ---------------- */
 

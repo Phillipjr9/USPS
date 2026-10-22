@@ -101,3 +101,18 @@ rule shadows the `/api` functions.
 Tracking scans for numbers that have no stored shipment are generated on the
 client. Real shipments created in the admin dashboard are stored in Postgres and
 resolve through `/api/track/:number`.
+
+## Note for maintainers
+
+`package.json` sets `"type": "module"`, so Vercel compiles each file in `api/` to
+a native ES module and does **not** bundle the local files together. As a result,
+relative imports inside `api/` must carry an explicit `.js` extension:
+
+```ts
+import { query } from "./_db.js"; // correct — resolves to _db.ts at build time
+import { query } from "./_db";    // crashes at runtime: ERR_MODULE_NOT_FOUND
+```
+
+A missing extension produces `500 FUNCTION_INVOCATION_FAILED` on every route that
+imports the file, while the build still succeeds — so it is easy to miss. `api/`
+is included in `tsconfig.json`, and `npx tsc --noEmit` catches other mistakes there.

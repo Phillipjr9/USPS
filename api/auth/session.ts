@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { ensureSchema } from "../_db";
-import { currentUser, fail, publicUser } from "../_auth";
+import { ensureSchema } from "../_db.js";
+import { currentUser, fail, publicUser } from "../_auth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
